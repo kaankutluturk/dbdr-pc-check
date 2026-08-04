@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Dbdr.PcCheck.Core</RootNamespace>
+  </PropertyGroup>
+</Project>

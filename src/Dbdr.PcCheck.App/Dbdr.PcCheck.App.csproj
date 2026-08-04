@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>DBDR.PcCheck</AssemblyName>
+    <RootNamespace>Dbdr.PcCheck.App</RootNamespace>
+    <Version>0.1.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Dbdr.PcCheck.Core\Dbdr.PcCheck.Core.csproj" />
+    <ProjectReference Include="..\Dbdr.PcCheck.Packaging\Dbdr.PcCheck.Packaging.csproj" />
+    <ProjectReference Include="..\Dbdr.PcCheck.Windows\Dbdr.PcCheck.Windows.csproj" />
+  </ItemGroup>
+</Project>

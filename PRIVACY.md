@@ -2,7 +2,7 @@
 
 ## Purpose
 
-DBDR PC Check Collector creates a narrowly scoped system-evidence snapshot for an authorized PC check. The development build writes the result locally and performs no network upload.
+DBDR PC Check creates a narrowly scoped system-evidence snapshot for an authorized PC check. The development build writes the result locally and performs no network upload.
 
 ## Data collected in v0.1
 

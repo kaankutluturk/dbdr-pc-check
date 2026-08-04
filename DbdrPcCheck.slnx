@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Dbdr.PcCheck.App/Dbdr.PcCheck.App.csproj" />
+    <Project Path="src/Dbdr.PcCheck.Core/Dbdr.PcCheck.Core.csproj" />
+    <Project Path="src/Dbdr.PcCheck.Packaging/Dbdr.PcCheck.Packaging.csproj" />
+    <Project Path="src/Dbdr.PcCheck.Windows/Dbdr.PcCheck.Windows.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Dbdr.PcCheck.Core.Tests/Dbdr.PcCheck.Core.Tests.csproj" />
+  </Folder>
+</Solution>

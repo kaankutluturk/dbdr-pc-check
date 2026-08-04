@@ -26,17 +26,17 @@ jobs:
           cache-dependency-path: "**/*.csproj"
 
       - name: Restore
-        run: dotnet restore .\DbdrPcCheckCollector.slnx
+        run: dotnet restore .\DbdrPcCheck.slnx
 
       - name: Build
-        run: dotnet build .\DbdrPcCheckCollector.slnx --configuration Release --no-restore
+        run: dotnet build .\DbdrPcCheck.slnx --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test .\DbdrPcCheckCollector.slnx --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test .\DbdrPcCheck.slnx --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
 
       - name: Publish single-file development build
         run: >-
-          dotnet publish .\src\Collector.App\Collector.App.csproj
+          dotnet publish .\src\Dbdr.PcCheck.App\Dbdr.PcCheck.App.csproj
           --configuration Release
           --runtime win-x64
           --self-contained true
@@ -47,7 +47,7 @@ jobs:
       - name: Upload development build
         uses: actions/upload-artifact@v7
         with:
-          name: dbdr-pc-check-collector-win-x64-${{ github.sha }}
-          path: artifacts/win-x64/DBDR.PcCheck.Collector.exe
+          name: dbdr-pc-check-win-x64-${{ github.sha }}
+          path: artifacts/win-x64/DBDR.PcCheck.exe
           if-no-files-found: error
           retention-days: 7
