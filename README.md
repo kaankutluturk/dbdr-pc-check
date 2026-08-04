@@ -1,4 +1,4 @@
-# DBDR PC Check Collector
+# DBDR PC Check
 
 An experimental, consent-based Windows evidence collector intended to make DBDR PC checks consistent and reviewable.
 
@@ -30,10 +30,10 @@ Requirements:
 - .NET 10 SDK
 
 ```powershell
-dotnet restore .\DbdrPcCheckCollector.slnx
-dotnet build .\DbdrPcCheckCollector.slnx --configuration Release
-dotnet test .\DbdrPcCheckCollector.slnx --configuration Release
-dotnet publish .\src\Collector.App\Collector.App.csproj `
+dotnet restore .\DbdrPcCheck.slnx
+dotnet build .\DbdrPcCheck.slnx --configuration Release
+dotnet test .\DbdrPcCheck.slnx --configuration Release
+dotnet publish .\src\Dbdr.PcCheck.App\Dbdr.PcCheck.App.csproj `
   --configuration Release `
   --runtime win-x64 `
   --self-contained true `
