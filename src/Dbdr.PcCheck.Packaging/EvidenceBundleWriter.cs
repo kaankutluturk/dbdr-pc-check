@@ -9,9 +9,12 @@ namespace Dbdr.PcCheck.Packaging;
 
 public sealed class EvidenceBundleWriter
 {
+    public const string EvidenceSchemaVersion = "0.1.1";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
     };
 
@@ -30,6 +33,7 @@ public sealed class EvidenceBundleWriter
         {
             await WriteJsonAsync(Path.Combine(workingDirectory, "case.json"), new
             {
+                evidenceSchemaVersion = EvidenceSchemaVersion,
                 result.Context.CaseId,
                 result.Context.ReviewWindowStartUtc,
                 result.Context.ReviewWindowEndUtc,
@@ -64,7 +68,7 @@ public sealed class EvidenceBundleWriter
 
             await File.WriteAllTextAsync(
                 Path.Combine(workingDirectory, "privacy.txt"),
-                "Development bundle: local-only, not encrypted, and not a moderation verdict. Treat as confidential system metadata. See PRIVACY.md in the source repository.",
+                "Development bundle: local-only, not encrypted, and not a moderation verdict. It includes redacted running-process paths and module metadata for running Dead by Daylight processes. Treat as confidential system metadata. See PRIVACY.md in the source repository.",
                 Encoding.UTF8,
                 cancellationToken).ConfigureAwait(false);
 

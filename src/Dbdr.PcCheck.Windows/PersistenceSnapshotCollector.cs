@@ -68,6 +68,7 @@ public sealed class PersistenceSnapshotCollector(PathRedactor redactor) : IEvide
                                 "persistence.run_key",
                                 $"Registry:{hive}:{view}:{keyPath}",
                                 DateTimeOffset.UtcNow,
+                                null,
                                 new Dictionary<string, string?>
                                 {
                                     ["entryName"] = valueName,
@@ -106,6 +107,7 @@ public sealed class PersistenceSnapshotCollector(PathRedactor redactor) : IEvide
                     kind,
                     className,
                     DateTimeOffset.UtcNow,
+                    null,
                     new Dictionary<string, string?>
                     {
                         ["name"] = Convert.ToString(item["Name"], CultureInfo.InvariantCulture),

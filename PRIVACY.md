@@ -4,17 +4,20 @@
 
 DBDR PC Check creates a narrowly scoped system-evidence snapshot for an authorized PC check. The development build writes the result locally and performs no network upload.
 
-## Data collected in v0.1
+## Data collected in v0.1.1
 
-- User-entered case identifier and the selected two-hour review window.
+- User-entered case identifier and explicit review-window start and end timestamps.
 - Collector version, collection timestamps, Windows version, CPU architecture, time zone and uptime.
-- Running process name, process ID, parent process ID, creation time and executable path where Windows exposes it.
+- Running process name, process ID, parent process ID, session ID, creation time and executable path where Windows exposes it.
 - For accessible executable files: redacted path, size, timestamps, SHA-256, version metadata and Authenticode validation status.
+- For running processes whose name contains `DeadByDaylight`: the file-backed module name and redacted path exposed by Windows, plus the same file metadata listed above where accessible.
 - Registry Run-key entry name and redacted value.
 - Service and system-driver name, display name, state, start mode and redacted image path.
 - Module duration, errors and access failures.
 
 Windows usernames are replaced with `%USERPROFILE%` before serialization. The collector does not intentionally record the computer name, account name, email address, Steam ID, IP address or hardware serial number.
+
+The module snapshot does not contain module base addresses, memory pages, strings extracted from memory or copies of DLL files. A failed or blocked module enumeration is recorded as incomplete coverage.
 
 ## Explicit exclusions
 
@@ -29,10 +32,11 @@ The collector does not collect:
 - DNS cache or general browsing destinations;
 - PowerShell or terminal history;
 - raw process-memory dumps; or
+- process-memory contents or memory-derived strings;
 - copies of executables or personal files.
 
 ## Local handling
 
-The v0.1 bundle is not encrypted. It may contain sensitive system metadata and should be treated as confidential. Do not post bundles in public Discord channels, GitHub issues or other public locations.
+The v0.1.1 bundle is not encrypted. It may contain sensitive system metadata and should be treated as confidential. Do not post bundles in public Discord channels, GitHub issues or other public locations.
 
 Production use requires a documented controller, purpose, lawful basis, retention period, access policy, deletion procedure and appeal path. A production upload feature must encrypt evidence before transmission and must not be enabled merely by accepting this development notice.

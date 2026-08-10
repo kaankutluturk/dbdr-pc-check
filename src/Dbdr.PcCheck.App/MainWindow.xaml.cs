@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Windows;
@@ -18,6 +19,10 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         DataContext = this;
+
+        var now = DateTimeOffset.UtcNow;
+        ReviewWindowStartTextBox.Text = FormatUtc(now.AddHours(-2));
+        ReviewWindowEndTextBox.Text = FormatUtc(now);
     }
 
     public ObservableCollection<string> Activity { get; } = [];
@@ -47,22 +52,55 @@ public partial class MainWindow : Window
             return;
         }
 
+        if (!ReviewWindowParser.TryParseUtc(ReviewWindowStartTextBox.Text, out var reviewWindowStartUtc)
+            || !ReviewWindowParser.TryParseUtc(ReviewWindowEndTextBox.Text, out var reviewWindowEndUtc))
+        {
+            MessageBox.Show(
+                this,
+                "Enter both review timestamps in ISO 8601 format with Z or an explicit UTC offset.",
+                "Invalid review window",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!ReviewWindowParser.IsOrdered(reviewWindowStartUtc, reviewWindowEndUtc))
+        {
+            MessageBox.Show(
+                this,
+                "The review-window start must be earlier than its end.",
+                "Invalid review window",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
         SetRunningState(true);
         Activity.Clear();
         _cancellationTokenSource = new CancellationTokenSource();
 
         try
         {
-            var now = DateTimeOffset.UtcNow;
+            var collectionStartedUtc = DateTimeOffset.UtcNow;
             var version = Assembly.GetExecutingAssembly()
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                .InformationalVersion ?? "0.1.0-development";
-            var context = new CollectionContext(caseId, now.AddHours(-2), now, now, version);
+                .InformationalVersion ?? "0.1.1-development";
+            var context = new CollectionContext(
+                caseId,
+                reviewWindowStartUtc,
+                reviewWindowEndUtc,
+                collectionStartedUtc,
+                version);
             var redactor = new PathRedactor();
+            var processSnapshotProvider = new LiveProcessSnapshotProvider();
+            var gameModuleEnumerator = new GameModuleEnumerator();
+            var fileInspector = new ExecutableFileInspector();
             var collectors = new IEvidenceCollector[]
             {
+                new ProcessSnapshotCollector(processSnapshotProvider, redactor),
+                new GameModuleSnapshotCollector(processSnapshotProvider, gameModuleEnumerator, fileInspector, redactor),
                 new SystemSnapshotCollector(),
-                new ProcessSnapshotCollector(redactor),
+                new ProcessFileMetadataCollector(processSnapshotProvider, fileInspector, redactor),
                 new PersistenceSnapshotCollector(redactor),
             };
 
@@ -136,6 +174,11 @@ public partial class MainWindow : Window
         StartButton.IsEnabled = !isRunning;
         CancelButton.IsEnabled = isRunning;
         CaseIdTextBox.IsEnabled = !isRunning;
+        ReviewWindowStartTextBox.IsEnabled = !isRunning;
+        ReviewWindowEndTextBox.IsEnabled = !isRunning;
         ConsentCheckBox.IsEnabled = !isRunning;
     }
+
+    private static string FormatUtc(DateTimeOffset value) =>
+        value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
 }

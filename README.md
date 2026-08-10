@@ -2,23 +2,26 @@
 
 An experimental, consent-based Windows evidence collector intended to make DBDR PC checks consistent and reviewable.
 
-> **Development status:** v0.1 is not a cheat detector and must not be used as the sole basis for moderation decisions.
+> **Development status:** v0.1.1 is not a cheat detector and must not be used as the sole basis for moderation decisions.
 
-## v0.1 scope
+## v0.1.1 scope
 
 The first milestone creates a local ZIP containing:
 
-- collector and case metadata;
+- collector, schema and user-entered case-window metadata;
 - non-identifying Windows and runtime metadata;
-- a running-process snapshot;
-- executable file hashes, version metadata and Authenticode validation status where accessible;
+- a fast running-process snapshot taken before slower file inspection;
+- module paths and file metadata for running processes whose name contains `DeadByDaylight`;
+- deduplicated running-process executable hashes, version metadata and Authenticode validation status where accessible;
 - registry Run-key persistence;
 - Windows service and system-driver metadata;
 - per-module errors and access failures;
-- a human-readable HTML summary; and
+- a human-readable HTML report containing collection coverage, a review-window timeline and expandable evidence tables; and
 - a SHA-256 manifest covering every report file.
 
 The collector does **not** upload data. It does not inspect browser history, chats, credentials, clipboard contents, screenshots, personal documents, raw process memory, or PowerShell history. It does not terminate processes, modify services, install drivers, attach a debugger, or clear logs.
+
+Module enumeration reads the operating system's file-backed module list for matching live game processes. It does not read or dump process-memory contents.
 
 See [PRIVACY.md](PRIVACY.md) for the complete collection boundary.
 
@@ -56,8 +59,9 @@ The program records observations, provenance and collection failures. Review pol
 
 ## Roadmap
 
-1. Validate the v0.1 schema and privacy boundary on clean Windows VMs.
-2. Add narrowly time-bounded Windows execution-history and event-log modules.
-3. Add encrypted bundle packaging and a separate staff-side analyzer.
-4. Introduce code signing and verifiable release provenance.
-5. Consider a private, access-controlled case backend only after policy review.
+1. Validate the v0.1.1 schema, live-state ordering and privacy boundary on clean Windows VMs.
+2. Add narrowly time-bounded BAM/DAM, PCA, Prefetch and event-log modules with explicit source-coverage reporting.
+3. Add scheduled-task and privacy-preserving device metadata collectors.
+4. Add encrypted bundle packaging and a separate staff-side analyzer.
+5. Introduce code signing and verifiable release provenance.
+6. Consider a private, access-controlled case backend only after policy review.

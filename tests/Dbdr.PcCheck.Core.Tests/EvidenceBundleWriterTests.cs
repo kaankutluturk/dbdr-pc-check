@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text.Json;
 using Dbdr.PcCheck.Core.Models;
 using Dbdr.PcCheck.Packaging;
 
@@ -22,6 +23,7 @@ public sealed class EvidenceBundleWriterTests
                 "test.record",
                 "unit-test",
                 now,
+                now.AddMinutes(-1),
                 new Dictionary<string, string?> { ["value"] = "safe" });
             var result = new CollectionRunResult(
                 context,
@@ -40,6 +42,25 @@ public sealed class EvidenceBundleWriterTests
             using var reader = new StreamReader(manifestEntry.Open());
             var manifestLines = (await reader.ReadToEndAsync()).Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
             Assert.Equal(5, manifestLines.Length);
+
+            var caseEntry = Assert.Single(archive.Entries, entry => entry.FullName == "case.json");
+            await using (var caseStream = caseEntry.Open())
+            using (var caseDocument = await JsonDocument.ParseAsync(caseStream))
+            {
+                Assert.Equal(
+                    EvidenceBundleWriter.EvidenceSchemaVersion,
+                    caseDocument.RootElement.GetProperty("evidenceSchemaVersion").GetString());
+            }
+
+            var evidenceEntry = Assert.Single(archive.Entries, entry => entry.FullName == "evidence.json");
+            await using (var evidenceStream = evidenceEntry.Open())
+            using (var evidenceDocument = await JsonDocument.ParseAsync(evidenceStream))
+            {
+                var serializedRecord = evidenceDocument.RootElement[0].GetProperty("records")[0];
+                Assert.True(serializedRecord.TryGetProperty("collectedAtUtc", out _));
+                Assert.True(serializedRecord.TryGetProperty("sourceTimestampUtc", out _));
+                Assert.False(serializedRecord.TryGetProperty("observedAtUtc", out _));
+            }
 
             foreach (var line in manifestLines)
             {

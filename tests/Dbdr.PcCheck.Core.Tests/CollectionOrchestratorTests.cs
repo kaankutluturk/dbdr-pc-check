@@ -32,7 +32,13 @@ public sealed class CollectionOrchestratorTests
 
         public Task<ModuleResult> CollectAsync(CollectionContext context, IProgress<CollectionProgress>? progress, CancellationToken cancellationToken)
         {
-            var record = new EvidenceRecord(Name, "test.record", "test", DateTimeOffset.UtcNow, new Dictionary<string, string?>());
+            var record = new EvidenceRecord(
+                Name,
+                "test.record",
+                "test",
+                DateTimeOffset.UtcNow,
+                null,
+                new Dictionary<string, string?>());
             return Task.FromResult(new ModuleResult(Name, true, TimeSpan.Zero, [record], [], []));
         }
     }
