@@ -6,4 +6,6 @@ public sealed record CollectionRunResult(
     IReadOnlyList<ModuleResult> Modules)
 {
     public IReadOnlyList<EvidenceRecord> Records => Modules.SelectMany(module => module.Records).ToArray();
+
+    public IReadOnlyList<EvidenceFinding> Findings { get; init; } = [];
 }

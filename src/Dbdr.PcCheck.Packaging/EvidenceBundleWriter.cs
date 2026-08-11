@@ -3,16 +3,21 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Dbdr.PcCheck.Core;
 using Dbdr.PcCheck.Core.Models;
 
 namespace Dbdr.PcCheck.Packaging;
 
 public sealed class EvidenceBundleWriter
 {
+    public const string EvidenceSchemaVersion = "0.2.0";
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
     public async Task<string> WriteAsync(
@@ -30,6 +35,8 @@ public sealed class EvidenceBundleWriter
         {
             await WriteJsonAsync(Path.Combine(workingDirectory, "case.json"), new
             {
+                evidenceSchemaVersion = EvidenceSchemaVersion,
+                analysisProfileVersion = EvidenceAnalyzer.AnalysisProfileVersion,
                 result.Context.CaseId,
                 result.Context.ReviewWindowStartUtc,
                 result.Context.ReviewWindowEndUtc,
@@ -56,6 +63,11 @@ public sealed class EvidenceBundleWriter
                 }),
                 cancellationToken).ConfigureAwait(false);
 
+            await WriteJsonAsync(
+                Path.Combine(workingDirectory, "findings.json"),
+                result.Findings,
+                cancellationToken).ConfigureAwait(false);
+
             await File.WriteAllTextAsync(
                 Path.Combine(workingDirectory, "report.html"),
                 HtmlReportRenderer.Render(result),
@@ -64,7 +76,7 @@ public sealed class EvidenceBundleWriter
 
             await File.WriteAllTextAsync(
                 Path.Combine(workingDirectory, "privacy.txt"),
-                "Development bundle: local-only, not encrypted, and not a moderation verdict. Treat as confidential system metadata. See PRIVACY.md in the source repository.",
+                "DBDR Evidence Suite development bundle: local-only, not encrypted, and not a moderation verdict. Depending on operator selection it can include redacted process/module paths, file metadata, time-bounded Windows execution artifacts, persistence configuration and privacy-minimized device facts. It excludes browser/chat data, credentials, PowerShell history, unique device serials and process memory. Treat as confidential system metadata. See PRIVACY.md in the source repository.",
                 Encoding.UTF8,
                 cancellationToken).ConfigureAwait(false);
 

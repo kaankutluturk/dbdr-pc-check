@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text.Json;
 using Dbdr.PcCheck.Core.Models;
 using Dbdr.PcCheck.Packaging;
 
@@ -22,24 +23,66 @@ public sealed class EvidenceBundleWriterTests
                 "test.record",
                 "unit-test",
                 now,
+                now.AddMinutes(-1),
                 new Dictionary<string, string?> { ["value"] = "safe" });
             var result = new CollectionRunResult(
                 context,
                 now,
-                [new ModuleResult("test", true, TimeSpan.FromMilliseconds(1), [record], [], [])]);
+                [new ModuleResult("test", true, TimeSpan.FromMilliseconds(1), [record], [], [])])
+            {
+                Findings =
+                [
+                    new EvidenceFinding(
+                        "F-001",
+                        FindingDisposition.NeedsReview,
+                        "Review test record",
+                        "Test detail",
+                        "test",
+                        "test.record"),
+                ],
+            };
 
             var bundlePath = await new EvidenceBundleWriter().WriteAsync(result, outputDirectory, CancellationToken.None);
 
             using var archive = ZipFile.OpenRead(bundlePath);
             var entries = archive.Entries.Select(entry => entry.FullName).Order(StringComparer.Ordinal).ToArray();
             Assert.Equal(
-                ["case.json", "collection-log.json", "evidence.json", "manifest.sha256", "privacy.txt", "report.html"],
+                ["case.json", "collection-log.json", "evidence.json", "findings.json", "manifest.sha256", "privacy.txt", "report.html"],
                 entries);
 
             var manifestEntry = Assert.Single(archive.Entries, entry => entry.FullName == "manifest.sha256");
             using var reader = new StreamReader(manifestEntry.Open());
             var manifestLines = (await reader.ReadToEndAsync()).Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
-            Assert.Equal(5, manifestLines.Length);
+            Assert.Equal(6, manifestLines.Length);
+
+            var caseEntry = Assert.Single(archive.Entries, entry => entry.FullName == "case.json");
+            await using (var caseStream = caseEntry.Open())
+            using (var caseDocument = await JsonDocument.ParseAsync(caseStream))
+            {
+                Assert.Equal(
+                    EvidenceBundleWriter.EvidenceSchemaVersion,
+                    caseDocument.RootElement.GetProperty("evidenceSchemaVersion").GetString());
+                Assert.Equal(
+                    EvidenceAnalyzer.AnalysisProfileVersion,
+                    caseDocument.RootElement.GetProperty("analysisProfileVersion").GetString());
+            }
+
+            var findingsEntry = Assert.Single(archive.Entries, entry => entry.FullName == "findings.json");
+            await using (var findingsStream = findingsEntry.Open())
+            using (var findingsDocument = await JsonDocument.ParseAsync(findingsStream))
+            {
+                Assert.Equal("needsReview", findingsDocument.RootElement[0].GetProperty("disposition").GetString());
+            }
+
+            var evidenceEntry = Assert.Single(archive.Entries, entry => entry.FullName == "evidence.json");
+            await using (var evidenceStream = evidenceEntry.Open())
+            using (var evidenceDocument = await JsonDocument.ParseAsync(evidenceStream))
+            {
+                var serializedRecord = evidenceDocument.RootElement[0].GetProperty("records")[0];
+                Assert.True(serializedRecord.TryGetProperty("collectedAtUtc", out _));
+                Assert.True(serializedRecord.TryGetProperty("sourceTimestampUtc", out _));
+                Assert.False(serializedRecord.TryGetProperty("observedAtUtc", out _));
+            }
 
             foreach (var line in manifestLines)
             {

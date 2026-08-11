@@ -1,26 +1,37 @@
-# DBDR PC Check
+# DBDR Evidence Suite
 
-An experimental, consent-based Windows evidence collector intended to make DBDR PC checks consistent and reviewable.
+A consent-based, read-only Windows evidence suite for consistent and reviewable DBDR PC checks.
 
-> **Development status:** v0.1 is not a cheat detector and must not be used as the sole basis for moderation decisions.
+> **Development status:** v0.2.0 records observations and coverage. It is not a cheat detector and must not be used as the sole basis for a moderation decision.
 
-## v0.1 scope
+## Product shape
 
-The first milestone creates a local ZIP containing:
+The desktop application provides one guided workflow instead of a folder of unrelated forensic utilities:
 
-- collector and case metadata;
-- non-identifying Windows and runtime metadata;
-- a running-process snapshot;
-- executable file hashes, version metadata and Authenticode validation status where accessible;
-- registry Run-key persistence;
-- Windows service and system-driver metadata;
-- per-module errors and access failures;
-- a human-readable HTML summary; and
-- a SHA-256 manifest covering every report file.
+1. enter the authorized case ID and explicit UTC review window;
+2. select the proportionate evidence sources for the case;
+3. preserve volatile DBD and process state first;
+4. collect slower historical and configuration evidence independently;
+5. generate neutral review items and explicit coverage gaps; and
+6. export a local evidence bundle and offline report.
 
-The collector does **not** upload data. It does not inspect browser history, chats, credentials, clipboard contents, screenshots, personal documents, raw process memory, or PowerShell history. It does not terminate processes, modify services, install drivers, attach a debugger, or clear logs.
+Each collector is read-only, independently cancellable and failure-isolated. A failed source does not erase successful evidence from another source.
 
-See [PRIVACY.md](PRIVACY.md) for the complete collection boundary.
+## v0.2.0 modules
+
+| Module | Current evidence | Important limitation |
+| --- | --- | --- |
+| Live DBD | Process snapshot, DBD file-backed modules, parent/session identifiers | No process-memory inspection; inaccessible module lists are coverage gaps |
+| Executable enrichment | SHA-256, Authenticode, file/version metadata, basic identity-stability check | The checked OS can misrepresent files; unsigned is not proof |
+| Execution timeline | Time-bounded BAM records, Prefetch file metadata, service-install events and Code Integrity warnings/errors | Prefetch last-write time is not represented as a parsed execution time |
+| Persistence | Run keys, services, system drivers | Current state does not prove when an entry was created |
+| Scheduled tasks | Task path, executable command, enabled/hidden state and trigger classes | Arguments and task principals are intentionally excluded |
+| Devices | PnP class, name, manufacturer, service, status and non-unique VID/PID or VEN/DEV model ID | Unique instance IDs/serials are excluded; a model ID does not prove DMA use |
+| Findings | Neutral `needsReview` and `coverageGap` observations | No finding is an automated moderation verdict |
+
+The suite does **not** upload evidence. It does not inspect browser history, browser downloads, chats, credentials, clipboard contents, screenshots, personal documents, PowerShell history, raw process memory or memory-derived strings. It does not terminate processes, modify services, install drivers, attach a debugger or clear logs.
+
+See [PRIVACY.md](PRIVACY.md), [the evidence schema](docs/evidence-schema.md), [source matrix](docs/source-matrix.md), [architecture](docs/architecture.md) and [threat model](docs/threat-model.md).
 
 ## Build
 
@@ -42,22 +53,18 @@ dotnet publish .\src\Dbdr.PcCheck.App\Dbdr.PcCheck.App.csproj `
   --output .\artifacts\win-x64
 ```
 
-## Evidence philosophy
+## Evidence standard
 
-The program records observations, provenance and collection failures. Review policy should distinguish:
+Reviewers must distinguish:
 
-- direct indicators;
-- corroborated indicators;
-- contextual anomalies;
-- incomplete collection; and
-- no evidence flagged by the current review rules.
+- a source observation;
+- a rule or correlation that needs human review;
+- a collection or source-coverage gap;
+- an alternative benign explanation; and
+- a moderation conclusion made outside the collector.
 
-“No evidence flagged” must never be represented as “clean.” Memory-only, kernel-level and DMA-based cheating cannot be conclusively excluded by this collector.
+“No automated review items” must never be represented as “clean.” Memory-only, kernel-level and DMA-based cheating cannot be conclusively excluded by this suite.
 
-## Roadmap
+## Next source adapters
 
-1. Validate the v0.1 schema and privacy boundary on clean Windows VMs.
-2. Add narrowly time-bounded Windows execution-history and event-log modules.
-3. Add encrypted bundle packaging and a separate staff-side analyzer.
-4. Introduce code signing and verifiable release provenance.
-5. Consider a private, access-controlled case backend only after policy review.
+The v0.2 architecture is ready for separately reviewed PCA/Amcache, USN, MFT and SRUM adapters. They are not enabled until their timestamp semantics, performance limits, redaction behavior and privacy purpose are documented and tested. Production backend work additionally requires encrypted transport, signed rule distribution, retention controls and an appeal workflow.

@@ -14,6 +14,8 @@ public sealed class CollectionOrchestratorTests
 
         Assert.Equal(2, result.Modules.Count);
         Assert.False(result.Modules[0].Completed);
+        Assert.Equal("Collector failed with InvalidOperationException.", Assert.Single(result.Modules[0].Errors));
+        Assert.DoesNotContain("Expected test failure", result.Modules[0].Errors[0], StringComparison.Ordinal);
         Assert.True(result.Modules[1].Completed);
         Assert.Single(result.Modules[1].Records);
     }
@@ -32,7 +34,13 @@ public sealed class CollectionOrchestratorTests
 
         public Task<ModuleResult> CollectAsync(CollectionContext context, IProgress<CollectionProgress>? progress, CancellationToken cancellationToken)
         {
-            var record = new EvidenceRecord(Name, "test.record", "test", DateTimeOffset.UtcNow, new Dictionary<string, string?>());
+            var record = new EvidenceRecord(
+                Name,
+                "test.record",
+                "test",
+                DateTimeOffset.UtcNow,
+                null,
+                new Dictionary<string, string?>());
             return Task.FromResult(new ModuleResult(Name, true, TimeSpan.Zero, [record], [], []));
         }
     }

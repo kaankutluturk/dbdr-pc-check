@@ -23,4 +23,14 @@ public sealed class PathRedactorTests
 
         Assert.Equal(@"%USERPROFILE%\Downloads\sample.exe", result);
     }
+
+    [Fact]
+    public void ReplacesUserDirectoryInNtDevicePath()
+    {
+        var redactor = new PathRedactor(@"D:\Profiles\Different");
+
+        var result = redactor.Redact(@"\Device\HarddiskVolume3\Users\PrivateName\AppData\Local\sample.exe");
+
+        Assert.Equal(@"%USERPROFILE%\AppData\Local\sample.exe", result);
+    }
 }

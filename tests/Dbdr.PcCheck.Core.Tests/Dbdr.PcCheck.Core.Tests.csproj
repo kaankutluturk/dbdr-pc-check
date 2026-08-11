@@ -14,5 +14,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Dbdr.PcCheck.Core\Dbdr.PcCheck.Core.csproj" />
     <ProjectReference Include="..\..\src\Dbdr.PcCheck.Packaging\Dbdr.PcCheck.Packaging.csproj" />
+    <ProjectReference Include="..\..\src\Dbdr.PcCheck.Windows\Dbdr.PcCheck.Windows.csproj" />
   </ItemGroup>
 </Project>

@@ -2,33 +2,47 @@
 
 ## Goals
 
-- Make routine PC-check evidence collection consistent.
-- Preserve the difference between an observation and a moderation conclusion.
+- Make routine authorized PC-check evidence collection consistent.
+- Preserve volatile live-process facts before slower enrichment.
+- Correlate narrowly selected Windows sources without overstating them.
+- Separate source observations, neutral review items, coverage gaps and moderation conclusions.
 - Minimize unrelated personal data.
 - Make accidental post-collection modification detectable through a manifest.
-- Continue collecting when a single Windows source is unavailable.
+- Continue collecting when one source is inaccessible.
 
 ## Non-goals
 
 - Proving that a machine is clean.
 - Defeating a hostile kernel or compromised operating system.
-- Detecting DMA hardware conclusively.
+- Detecting DMA hardware conclusively from device inventory.
 - Performing memory forensics or reverse engineering.
-- Replacing staff review or an appeal process.
+- Reconstructing general browsing, chat or command-line activity.
+- Replacing staff review, policy or an appeal process.
 
 ## Trust boundaries
 
-The v0.1 collector runs inside the checked Windows installation. A sufficiently privileged adversary can manipulate APIs, files or registry results. The SHA-256 manifest detects changes after packaging but does not prove that the source operating system supplied truthful data.
+The suite runs inside the checked Windows installation. A sufficiently privileged adversary can manipulate APIs, files, registry results, logs and timestamps. The SHA-256 manifest detects changes after packaging but does not prove that Windows supplied truthful evidence.
 
-Future direct upload should use a one-use case token, local authenticated encryption and a server receipt covering the uploaded bundle hash. A private key must never be embedded in the public client.
+The process snapshot is cached before slower module/file inspection. This reduces but cannot eliminate process exit, PID reuse, path replacement and time-of-check/time-of-use races. Basic file identity is compared before and after hashing, but a privileged hostile system can still deceive the collector.
+
+## Source-specific limitations
+
+- **BAM:** layout and retention vary by Windows version and configuration. A missing key or entry is not proof of absence.
+- **Prefetch:** v0.2.0 records file metadata only. File last-write time is not treated as a fully parsed execution timestamp.
+- **Event Log:** channels can be disabled, cleared, inaccessible or truncated. The collector caps inspection per configured query and reports coverage.
+- **Scheduled tasks:** command arguments and principals are excluded for privacy, so the record is intentionally incomplete.
+- **Devices:** only non-unique model identifiers are retained. VID/PID or VEN/DEV values identify a model family, not a particular device or DMA behavior.
+- **Module lists:** file-backed modules do not establish the absence of non-file-backed, kernel-level or external manipulation.
+- **Hashes/signatures:** unsigned, unknown or inaccessible files are weak observations and require corroboration.
 
 ## Abuse cases
 
-- A staff member requests collection outside an authorized case.
-- A bundle exposes unrelated personal paths.
-- A malicious fork impersonates the official collector.
-- A moderation decision treats one weak artifact as conclusive.
+- A staff member requests collection without a valid case or consent.
+- A broad source exposes unrelated personal data.
+- A malicious fork impersonates an official collector.
+- A reviewer treats a weak observation, model identifier, missing artifact or source failure as conclusive.
 - A local attacker tampers with evidence before packaging.
-- A build workflow or signing secret is compromised.
+- A build workflow, rule pack or signing secret is compromised.
+- A future backend retains evidence indefinitely or exposes it to unauthorized staff.
 
-Mitigations include explicit scope, visible consent, redaction, signed releases, reproducible CI, manifest verification, access control and mandatory human review.
+Mitigations include visible authorization, operator-selectable modules, strict exclusions, source-specific coverage, path/device redaction, deterministic neutral findings, signed releases, reproducible CI, bundle manifests, access control and mandatory human review.

@@ -4,5 +4,6 @@ public sealed record EvidenceRecord(
     string Module,
     string Kind,
     string Source,
-    DateTimeOffset ObservedAtUtc,
+    DateTimeOffset CollectedAtUtc,
+    DateTimeOffset? SourceTimestampUtc,
     IReadOnlyDictionary<string, string?> Fields);
