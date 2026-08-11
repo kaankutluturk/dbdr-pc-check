@@ -100,6 +100,27 @@ public sealed class GameModuleSnapshotCollector(
                 ["moduleRecordCount"] = records.Count.ToString(CultureInfo.InvariantCulture),
             }));
 
+        var coverageStatus = gameProcesses.Length == 0
+            ? "empty"
+            : enumerationSucceeded == 0
+                ? "unavailable"
+                : "available";
+        records.Add(new EvidenceRecord(
+            Name,
+            "coverage.source",
+            "System.Diagnostics.Process.Modules",
+            DateTimeOffset.UtcNow,
+            null,
+            new Dictionary<string, string?>
+            {
+                ["sourceName"] = "Live DBD module enumeration",
+                ["status"] = coverageStatus,
+                ["recordCount"] = records.Count(record => record.Kind == "process.module").ToString(CultureInfo.InvariantCulture),
+                ["detail"] = enumerationFailed > 0
+                    ? $"Enumeration failed for {enumerationFailed.ToString(CultureInfo.InvariantCulture)} matching process(es)."
+                    : "File-backed module list only; no process memory was read.",
+            }));
+
         stopwatch.Stop();
         return new ModuleResult(Name, true, stopwatch.Elapsed, records, warnings, []);
     }

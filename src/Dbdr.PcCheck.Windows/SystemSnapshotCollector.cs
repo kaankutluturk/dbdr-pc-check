@@ -56,7 +56,21 @@ public sealed class SystemSnapshotCollector : IEvidenceCollector
             null,
             fields);
 
+        var coverage = new EvidenceRecord(
+            Name,
+            "coverage.source",
+            "RuntimeInformation and Windows identity elevation state",
+            DateTimeOffset.UtcNow,
+            null,
+            new Dictionary<string, string?>
+            {
+                ["sourceName"] = "Non-identifying system snapshot",
+                ["status"] = "available",
+                ["recordCount"] = "1",
+                ["detail"] = isElevated is null ? "Elevation state was unavailable." : null,
+            });
+
         stopwatch.Stop();
-        return Task.FromResult(new ModuleResult(Name, true, stopwatch.Elapsed, [record], warnings, []));
+        return Task.FromResult(new ModuleResult(Name, true, stopwatch.Elapsed, [record, coverage], warnings, []));
     }
 }

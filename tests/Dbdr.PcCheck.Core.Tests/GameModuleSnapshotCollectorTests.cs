@@ -24,12 +24,14 @@ public sealed class GameModuleSnapshotCollectorTests
         var warning = Assert.Single(result.Warnings);
         Assert.Contains("Win32Exception", warning);
 
-        var status = Assert.Single(result.Records);
+        var status = Assert.Single(result.Records.Where(record => record.Kind == "game.snapshot"));
         Assert.Equal("game.snapshot", status.Kind);
         Assert.Equal("1", status.Fields["matchingProcessCount"]);
         Assert.Equal("0", status.Fields["moduleEnumerationSucceededCount"]);
         Assert.Equal("1", status.Fields["moduleEnumerationFailedCount"]);
         Assert.Equal("0", status.Fields["moduleRecordCount"]);
+        var coverage = Assert.Single(result.Records.Where(record => record.Kind == "coverage.source"));
+        Assert.Equal("unavailable", coverage.Fields["status"]);
     }
 
     [Fact]

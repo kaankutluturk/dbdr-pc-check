@@ -66,6 +66,23 @@ public sealed class ProcessFileMetadataCollector(
             ? new[] { $"File inspection was incomplete for {inspectionFailures} executable path(s). Review per-record errors." }
             : Array.Empty<string>();
 
+        var metadataRecordCount = records.Count;
+        records.Add(new EvidenceRecord(
+            Name,
+            "coverage.source",
+            "running-process executable paths",
+            DateTimeOffset.UtcNow,
+            null,
+            new Dictionary<string, string?>
+            {
+                ["sourceName"] = "Process executable enrichment",
+                ["status"] = metadataRecordCount == 0 ? "empty" : "available",
+                ["recordCount"] = metadataRecordCount.ToString(CultureInfo.InvariantCulture),
+                ["detail"] = inspectionFailures > 0
+                    ? $"{inspectionFailures.ToString(CultureInfo.InvariantCulture)} referenced path(s) could not be fully inspected."
+                    : "Deduplicated by executable path.",
+            }));
+
         stopwatch.Stop();
         return new ModuleResult(Name, true, stopwatch.Elapsed, records, warnings, []);
     }

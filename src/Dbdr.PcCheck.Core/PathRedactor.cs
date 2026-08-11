@@ -26,9 +26,13 @@ public sealed partial class PathRedactor
             redacted = redacted.Replace(_userProfile, "%USERPROFILE%", StringComparison.OrdinalIgnoreCase);
         }
 
+        redacted = DeviceUserPath().Replace(redacted, "%USERPROFILE%\\");
         return WindowsUserPath().Replace(redacted, "%USERPROFILE%\\");
     }
 
     [GeneratedRegex(@"(?i)[A-Z]:\\Users\\[^\\]+\\", RegexOptions.CultureInvariant)]
     private static partial Regex WindowsUserPath();
+
+    [GeneratedRegex(@"(?i)\\Device\\HarddiskVolume\d+\\Users\\[^\\]+\\", RegexOptions.CultureInvariant)]
+    private static partial Regex DeviceUserPath();
 }

@@ -44,12 +44,26 @@ public sealed class HtmlReportRendererTests
         var result = new CollectionRunResult(
             context,
             now.AddSeconds(2),
-            [new ModuleResult("test", true, TimeSpan.FromSeconds(1), records, ["<warning>"], [])]);
+            [new ModuleResult("test", true, TimeSpan.FromSeconds(1), records, ["<warning>"], [])])
+        {
+            Findings =
+            [
+                new EvidenceFinding(
+                    "F-001",
+                    FindingDisposition.NeedsReview,
+                    "Review <this>",
+                    "Neutral finding",
+                    "test",
+                    "process.snapshot"),
+            ],
+        };
 
         var html = HtmlReportRenderer.Render(result);
 
         Assert.Contains("Review-window timeline", html, StringComparison.Ordinal);
         Assert.Contains("Live DBD state", html, StringComparison.Ordinal);
+        Assert.Contains("Review queue", html, StringComparison.Ordinal);
+        Assert.Contains("Review &lt;this&gt;", html, StringComparison.Ordinal);
         Assert.Contains("&lt;script&gt;alert(1)&lt;/script&gt;", html, StringComparison.Ordinal);
         Assert.Contains("&lt;warning&gt;", html, StringComparison.Ordinal);
         Assert.DoesNotContain("<script>alert(1)</script>", html, StringComparison.Ordinal);

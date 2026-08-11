@@ -44,6 +44,21 @@ public sealed class ProcessSnapshotCollector(
             ? new[] { "Win32_Process returned no records." }
             : Array.Empty<string>();
 
+        var processRecordCount = records.Count;
+        records.Add(new EvidenceRecord(
+            Name,
+            "coverage.source",
+            "Win32_Process",
+            DateTimeOffset.UtcNow,
+            null,
+            new Dictionary<string, string?>
+            {
+                ["sourceName"] = "Live process snapshot",
+                ["status"] = processRecordCount == 0 ? "empty" : "available",
+                ["recordCount"] = processRecordCount.ToString(CultureInfo.InvariantCulture),
+                ["detail"] = "Captured once before slower file inspection.",
+            }));
+
         stopwatch.Stop();
         return new ModuleResult(Name, true, stopwatch.Elapsed, records, warnings, []);
     }

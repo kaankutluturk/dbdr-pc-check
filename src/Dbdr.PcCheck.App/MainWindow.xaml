@@ -1,89 +1,281 @@
 <Window x:Class="Dbdr.PcCheck.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="DBDR PC Check — Development Build"
-        Width="900" Height="760" MinWidth="820" MinHeight="700"
+        Title="DBDR Evidence Suite — Development Build"
+        Width="1180" Height="820" MinWidth="1040" MinHeight="720"
         Background="{StaticResource WindowBackground}"
         Foreground="{StaticResource TextPrimary}"
         WindowStartupLocation="CenterScreen">
-    <Grid Margin="28">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="242" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="0">
-            <TextBlock Text="DBDR PC Check" FontSize="28" FontWeight="SemiBold" />
-            <TextBlock Text="Development milestone 0.1.1 · local evidence only"
-                       Foreground="{StaticResource TextSecondary}" Margin="0,5,0,0" />
-        </StackPanel>
+        <Border Grid.Column="0" Background="{StaticResource SidebarBackground}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,1,0">
+            <Grid Margin="20,24">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-        <Border Grid.Row="1" Background="{StaticResource PanelBackground}" CornerRadius="8" Padding="18" Margin="0,22,0,0">
-            <StackPanel>
-                <TextBlock Text="Collection boundary" FontSize="17" FontWeight="SemiBold" />
-                <TextBlock Margin="0,8,0,0" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}"
-                           Text="Collects system metadata, a fast running-process snapshot, modules loaded by running Dead by Daylight processes, executable hashes/signature status, Run keys, services and drivers. It does not collect browser or chat data, credentials, screenshots, personal documents, command lines or process memory. Nothing is uploaded." />
-                <TextBlock Margin="0,10,0,0" TextWrapping="Wrap" Foreground="#F2C66D"
-                           Text="This is not a cheat verdict. The resulting ZIP is unencrypted development evidence and must be handled confidentially." />
-            </StackPanel>
+                <StackPanel>
+                    <Border Width="38" Height="38" HorizontalAlignment="Left" CornerRadius="8"
+                            Background="{StaticResource Primary}">
+                        <TextBlock Text="D" FontSize="20" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Text="DBDR Evidence Suite" Margin="0,14,0,0" FontSize="17" FontWeight="SemiBold" />
+                    <TextBlock Text="Development 0.2" Margin="0,4,0,0" Foreground="{StaticResource TextQuiet}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Margin="0,30,0,0">
+                    <RadioButton x:Name="SetupNavButton" GroupName="Navigation" Content="New check"
+                                 Style="{StaticResource NavButtonStyle}" IsChecked="True" />
+                    <RadioButton x:Name="ActivityNavButton" GroupName="Navigation" Content="Collection activity"
+                                 Style="{StaticResource NavButtonStyle}" />
+                    <RadioButton x:Name="PrivacyNavButton" GroupName="Navigation" Content="Boundary &amp; privacy"
+                                 Style="{StaticResource NavButtonStyle}" />
+                </StackPanel>
+
+                <Border Grid.Row="3" Background="#111A23" BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="8" Padding="12">
+                    <StackPanel>
+                        <TextBlock Text="LOCAL COLLECTION" FontSize="10" FontWeight="Bold"
+                                   Foreground="{StaticResource Success}" />
+                        <TextBlock Text="No evidence is uploaded." Margin="0,5,0,0" FontSize="12"
+                                   Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Border>
 
-        <StackPanel Grid.Row="2" Margin="0,20,0,16">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.1*" />
-                    <ColumnDefinition Width="1.45*" />
-                    <ColumnDefinition Width="1.45*" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Margin="0,0,14,0">
-                    <TextBlock Text="Case ID" FontWeight="SemiBold" />
-                    <TextBox x:Name="CaseIdTextBox" Margin="0,7,0,0" Height="36" Padding="10,6"
-                             Background="#222C38" Foreground="{StaticResource TextPrimary}" BorderBrush="#3B4858"
-                             ToolTip="Letters, numbers, hyphens and underscores only" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Margin="0,0,14,0">
-                    <TextBlock Text="Review start (UTC)" FontWeight="SemiBold" />
-                    <TextBox x:Name="ReviewWindowStartTextBox" Margin="0,7,0,0" Height="36" Padding="10,6"
-                             Background="#222C38" Foreground="{StaticResource TextPrimary}" BorderBrush="#3B4858"
-                             ToolTip="ISO 8601 with Z or an explicit offset" />
-                </StackPanel>
-                <StackPanel Grid.Column="2">
-                    <TextBlock Text="Review end (UTC)" FontWeight="SemiBold" />
-                    <TextBox x:Name="ReviewWindowEndTextBox" Margin="0,7,0,0" Height="36" Padding="10,6"
-                             Background="#222C38" Foreground="{StaticResource TextPrimary}" BorderBrush="#3B4858"
-                             ToolTip="ISO 8601 with Z or an explicit offset" />
-                </StackPanel>
-            </Grid>
-            <TextBlock Margin="0,7,0,0" Foreground="{StaticResource TextSecondary}" FontSize="12"
-                       Text="Use ISO 8601 timestamps such as 2026-08-10T14:30:00Z. The selected window is case metadata; collection never rewrites system settings." />
-            <CheckBox x:Name="ConsentCheckBox" Margin="0,14,0,0" Foreground="{StaticResource TextPrimary}"
-                      Content="I have read the collection boundary and authorize this local collection." />
-            <StackPanel Margin="0,14,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
-                <Button x:Name="CancelButton" Content="Cancel" Width="90" Height="38" Margin="0,0,10,0"
-                        IsEnabled="False" Click="CancelButton_OnClick" />
-                <Button x:Name="StartButton" Content="Begin PC Check" Width="142" Height="38"
-                        Background="{StaticResource Primary}" Foreground="White" BorderThickness="0"
-                        FontWeight="SemiBold" Click="StartButton_OnClick" />
-            </StackPanel>
-        </StackPanel>
-
-        <Border Grid.Row="3" Background="{StaticResource PanelBackground}" CornerRadius="8" Padding="14">
-            <Grid>
+        <Grid Grid.Column="1">
+            <Grid x:Name="SetupPage" Margin="34,28">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsChecked, ElementName=SetupNavButton}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <TextBlock x:Name="StatusTextBlock" Text="Ready" FontWeight="SemiBold" />
-                <ListBox x:Name="ActivityListBox" Grid.Row="1" Margin="0,10,0,0"
-                         Background="Transparent" BorderThickness="0" Foreground="{StaticResource TextSecondary}"
-                         ItemsSource="{Binding Activity}" />
-            </Grid>
-        </Border>
 
-        <TextBlock Grid.Row="4" Margin="0,14,0,0" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap"
-                   Text="Output is written to a DBDR-PC-Checks folder on the current user's Desktop." />
+                <StackPanel>
+                    <TextBlock Text="New authorized check" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock Text="Choose a review window and the evidence sources appropriate for this case."
+                               Margin="0,6,0,0" Style="{StaticResource MutedTextStyle}" />
+                </StackPanel>
+
+                <ScrollViewer Grid.Row="1" Margin="0,24,0,20" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Border Style="{StaticResource CardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Case details" Style="{StaticResource SectionTitleStyle}" />
+                                <Grid Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1.05*" />
+                                        <ColumnDefinition Width="1.35*" />
+                                        <ColumnDefinition Width="1.35*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,14,0">
+                                        <TextBlock Text="Case ID" Foreground="{StaticResource TextSecondary}" />
+                                        <TextBox x:Name="CaseIdTextBox" Margin="0,7,0,0"
+                                                 ToolTip="Letters, numbers, hyphens and underscores only" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="0,0,14,0">
+                                        <TextBlock Text="Review start (UTC)" Foreground="{StaticResource TextSecondary}" />
+                                        <TextBox x:Name="ReviewWindowStartTextBox" Margin="0,7,0,0"
+                                                 ToolTip="ISO 8601 with Z or an explicit offset" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Text="Review end (UTC)" Foreground="{StaticResource TextSecondary}" />
+                                        <TextBox x:Name="ReviewWindowEndTextBox" Margin="0,7,0,0"
+                                                 ToolTip="ISO 8601 with Z or an explicit offset" />
+                                    </StackPanel>
+                                </Grid>
+                                <TextBlock Margin="0,10,0,0" FontSize="12" Foreground="{StaticResource TextQuiet}"
+                                           Text="ISO 8601 example: 2026-08-11T18:30:00Z. Source records are filtered where their timestamps permit it." />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardStyle}" Margin="0,14,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Evidence sources" Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="Live state is always preserved first. Optional modules run afterward and remain independently cancellable."
+                                           Margin="0,6,0,14" Style="{StaticResource MutedTextStyle}" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,20,0">
+                                        <CheckBox x:Name="LiveStateCheckBox" Content="Live DBD and process state" IsChecked="True" IsEnabled="False" />
+                                        <TextBlock Text="Processes, loaded DBD modules, hashes and signatures"
+                                                   Margin="22,3,0,13" FontSize="12" Foreground="{StaticResource TextQuiet}" />
+                                        <CheckBox x:Name="ExecutionHistoryCheckBox" Content="Execution timeline" IsChecked="True" />
+                                        <TextBlock Text="BAM, Prefetch metadata, service installs and Code Integrity"
+                                                   Margin="22,3,0,13" FontSize="12" Foreground="{StaticResource TextQuiet}" />
+                                        <CheckBox x:Name="FileEnrichmentCheckBox" Content="All process executable metadata" IsChecked="True" />
+                                        <TextBlock Text="Deduplicated SHA-256, signatures and version metadata"
+                                                   Margin="22,3,0,0" FontSize="12" Foreground="{StaticResource TextQuiet}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <CheckBox x:Name="PersistenceCheckBox" Content="Persistence inventory" IsChecked="True" />
+                                        <TextBlock Text="Run keys, services and system drivers"
+                                                   Margin="22,3,0,13" FontSize="12" Foreground="{StaticResource TextQuiet}" />
+                                        <CheckBox x:Name="ScheduledTasksCheckBox" Content="Scheduled tasks" IsChecked="True" />
+                                        <TextBlock Text="Task names, commands and trigger classes; arguments excluded"
+                                                   Margin="22,3,0,13" FontSize="12" Foreground="{StaticResource TextQuiet}" />
+                                        <CheckBox x:Name="DeviceInventoryCheckBox" Content="Privacy-minimized device inventory" IsChecked="True" />
+                                        <TextBlock Text="Device classes and model IDs; serial instance IDs excluded"
+                                                   Margin="22,3,0,0" FontSize="12" Foreground="{StaticResource TextQuiet}" />
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardStyle}" Margin="0,14,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Authorization" Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Margin="0,7,0,0" Style="{StaticResource MutedTextStyle}"
+                                           Text="This suite records system evidence only. It does not collect browser or chat data, credentials, screenshots, command-line history, personal documents, unique device serials or process-memory contents." />
+                                <CheckBox x:Name="ConsentCheckBox" Margin="0,14,0,0"
+                                          Content="I have read the boundary and authorize this local, read-only collection." />
+                                <TextBlock Margin="0,10,0,0" Foreground="{StaticResource Warning}" TextWrapping="Wrap"
+                                           Text="Observations and rule matches are not moderation verdicts. Missing evidence is always reported as a coverage gap." />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Border Grid.Row="2" Background="{StaticResource SidebarBackground}" BorderBrush="{StaticResource BorderBrush}"
+                        BorderThickness="1" CornerRadius="9" Padding="14">
+                    <Grid>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="Output" FontWeight="SemiBold" />
+                            <TextBlock Text="Encrypted transport is not enabled; the ZIP remains on this PC."
+                                       Margin="0,3,0,0" FontSize="12" Foreground="{StaticResource TextQuiet}" />
+                        </StackPanel>
+                        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                            <Button x:Name="CancelButton" Content="Cancel" Width="94" Margin="0,0,10,0"
+                                    IsEnabled="False" Click="CancelButton_OnClick" />
+                            <Button x:Name="StartButton" Content="Begin collection" Width="154"
+                                    Style="{StaticResource PrimaryButtonStyle}" Click="StartButton_OnClick" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid x:Name="ActivityPage" Margin="34,28">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsChecked, ElementName=ActivityNavButton}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="Collection activity" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock Text="Every enabled module reports progress and explicit source coverage."
+                               Margin="0,6,0,0" Style="{StaticResource MutedTextStyle}" />
+                </StackPanel>
+                <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,24,0,14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Name="StatusTextBlock" Text="Ready for an authorized collection" FontSize="17" FontWeight="SemiBold" />
+                            <TextBlock x:Name="CollectionSummaryTextBlock" Text="No bundle has been created in this session."
+                                       Margin="0,5,0,0" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <ProgressBar x:Name="CollectionProgressBar" Width="160" Height="6" Margin="0,0,14,0"
+                                         IsIndeterminate="False" Foreground="{StaticResource Primary}" />
+                            <Button x:Name="ActivityCancelButton" Content="Cancel" Width="88" IsEnabled="False"
+                                    Click="CancelButton_OnClick" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
+                    <ListBox x:Name="ActivityListBox" Padding="16,12" Background="Transparent" BorderThickness="0"
+                             Foreground="{StaticResource TextSecondary}" ItemsSource="{Binding Activity}"
+                             FontFamily="Cascadia Mono, Consolas" FontSize="12" />
+                </Border>
+                <Grid Grid.Row="3" Margin="0,14,0,0">
+                    <TextBlock x:Name="LastBundlePathTextBlock" Text="Bundles are written to Desktop\DBDR-PC-Checks."
+                               Foreground="{StaticResource TextQuiet}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <Button x:Name="OpenLastBundleButton" Content="Open last bundle" HorizontalAlignment="Right"
+                            IsEnabled="False" Click="OpenLastBundleButton_OnClick" />
+                </Grid>
+            </Grid>
+
+            <ScrollViewer x:Name="PrivacyPage" Margin="34,28" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer.Style>
+                    <Style TargetType="ScrollViewer">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsChecked, ElementName=PrivacyNavButton}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ScrollViewer.Style>
+                <StackPanel>
+                    <TextBlock Text="Boundary &amp; privacy" FontSize="28" FontWeight="SemiBold" />
+                    <TextBlock Text="What this development build can—and deliberately cannot—observe."
+                               Margin="0,6,0,24" Style="{StaticResource MutedTextStyle}" />
+                    <Border Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Read-only evidence" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Margin="0,9,0,0" Style="{StaticResource MutedTextStyle}"
+                                       Text="The suite reads volatile process state, selected Windows execution artifacts, persistence configuration, file metadata and privacy-minimized device facts. It never terminates a process, modifies a service, clears a log, installs a driver, injects code or attaches a debugger." />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Explicit exclusions" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Margin="0,9,0,0" Style="{StaticResource MutedTextStyle}"
+                                       Text="No credentials, browser history, browser downloads, chat contents, clipboard, screenshots, personal documents, PowerShell history, raw memory, memory-derived strings, unique device-instance serials or copies of files are collected." />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Interpretation standard" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Margin="0,9,0,0" Style="{StaticResource MutedTextStyle}"
+                                       Text="A warning means review the underlying observation. It does not mean cheating occurred. Disabled, cleaned, unsupported or inaccessible sources are coverage gaps and must be corroborated through policy-approved evidence." />
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource CardStyle}" Margin="0,14,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Local handling" Style="{StaticResource SectionTitleStyle}" />
+                            <TextBlock Margin="0,9,0,0" Style="{StaticResource MutedTextStyle}"
+                                       Text="The evidence ZIP is generated locally and is not encrypted. Treat it as confidential system metadata. Do not post it in public Discord channels, issues or repositories." />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </Window>

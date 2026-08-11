@@ -39,7 +39,7 @@ public sealed class CollectionOrchestrator(IEnumerable<IEvidenceCollector> colle
                     stopwatch.Elapsed,
                     [],
                     [],
-                    [$"{exception.GetType().Name}: {exception.Message}"]));
+                    [$"Collector failed with {exception.GetType().Name}."]));
             }
             finally
             {

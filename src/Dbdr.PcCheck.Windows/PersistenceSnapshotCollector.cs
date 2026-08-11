@@ -35,6 +35,21 @@ public sealed class PersistenceSnapshotCollector(PathRedactor redactor) : IEvide
         progress?.Report(new CollectionProgress(Name, "Reading Windows system drivers"));
         CollectManagementClass("Win32_SystemDriver", "persistence.driver", records, warnings, cancellationToken);
 
+        var persistenceRecordCount = records.Count;
+        records.Add(new EvidenceRecord(
+            Name,
+            "coverage.source",
+            "Registry Run keys, Win32_Service and Win32_SystemDriver",
+            DateTimeOffset.UtcNow,
+            null,
+            new Dictionary<string, string?>
+            {
+                ["sourceName"] = "Persistence inventory",
+                ["status"] = persistenceRecordCount == 0 ? "empty" : "available",
+                ["recordCount"] = persistenceRecordCount.ToString(CultureInfo.InvariantCulture),
+                ["detail"] = warnings.Count > 0 ? "One or more persistence sub-sources reported warnings." : null,
+            }));
+
         stopwatch.Stop();
         return Task.FromResult(new ModuleResult(Name, true, stopwatch.Elapsed, records, warnings, []));
     }
@@ -120,7 +135,7 @@ public sealed class PersistenceSnapshotCollector(PathRedactor redactor) : IEvide
         }
         catch (ManagementException exception)
         {
-            warnings.Add($"{className}: {exception.GetType().Name}: {exception.Message}");
+            warnings.Add($"{className}: {exception.GetType().Name}");
         }
     }
 }
