@@ -36,7 +36,7 @@ public sealed class ScheduledTaskCollectorTests
 
             var result = await collector.CollectAsync(context, null, CancellationToken.None);
 
-            var task = Assert.Single(result.Records.Where(record => record.Kind == "persistence.scheduled_task"));
+            var task = Assert.Single(result.Records, record => record.Kind == "persistence.scheduled_task");
             Assert.Equal(@"%USERPROFILE%\AppData\Local\runner.exe", task.Fields["command"]);
             Assert.Equal("LogonTrigger", task.Fields["triggerTypes"]);
             Assert.False(task.Fields.ContainsKey("arguments"));

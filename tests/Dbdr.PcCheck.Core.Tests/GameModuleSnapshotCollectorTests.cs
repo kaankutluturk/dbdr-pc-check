@@ -24,13 +24,13 @@ public sealed class GameModuleSnapshotCollectorTests
         var warning = Assert.Single(result.Warnings);
         Assert.Contains("Win32Exception", warning);
 
-        var status = Assert.Single(result.Records.Where(record => record.Kind == "game.snapshot"));
+        var status = Assert.Single(result.Records, record => record.Kind == "game.snapshot");
         Assert.Equal("game.snapshot", status.Kind);
         Assert.Equal("1", status.Fields["matchingProcessCount"]);
         Assert.Equal("0", status.Fields["moduleEnumerationSucceededCount"]);
         Assert.Equal("1", status.Fields["moduleEnumerationFailedCount"]);
         Assert.Equal("0", status.Fields["moduleRecordCount"]);
-        var coverage = Assert.Single(result.Records.Where(record => record.Kind == "coverage.source"));
+        var coverage = Assert.Single(result.Records, record => record.Kind == "coverage.source");
         Assert.Equal("unavailable", coverage.Fields["status"]);
     }
 
@@ -46,12 +46,12 @@ public sealed class GameModuleSnapshotCollectorTests
         var result = await collector.CollectAsync(Context(), null, CancellationToken.None);
 
         Assert.Empty(result.Warnings);
-        var module = Assert.Single(result.Records.Where(record => record.Kind == "process.module"));
+        var module = Assert.Single(result.Records, record => record.Kind == "process.module");
         Assert.Equal(@"%USERPROFILE%\test.dll", module.Fields["modulePath"]);
         Assert.Equal("ABC123", module.Fields["sha256"]);
         Assert.Equal("Valid", module.Fields["authenticodeStatus"]);
 
-        var status = Assert.Single(result.Records.Where(record => record.Kind == "game.snapshot"));
+        var status = Assert.Single(result.Records, record => record.Kind == "game.snapshot");
         Assert.Equal("1", status.Fields["moduleEnumerationSucceededCount"]);
         Assert.Equal("0", status.Fields["moduleEnumerationFailedCount"]);
         Assert.Equal("1", status.Fields["moduleRecordCount"]);
