@@ -3,7 +3,9 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 using Dbdr.PcCheck.Core;
 using Dbdr.PcCheck.Core.Models;
 using Dbdr.PcCheck.Packaging;
@@ -13,6 +15,7 @@ namespace Dbdr.PcCheck.App;
 
 public partial class MainWindow : Window
 {
+    private const int DwmwaUseImmersiveDarkMode = 20;
     private CancellationTokenSource? _cancellationTokenSource;
     private string? _lastBundlePath;
 
@@ -27,6 +30,15 @@ public partial class MainWindow : Window
     }
 
     public ObservableCollection<string> Activity { get; } = [];
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        var darkMode = 1;
+        var handle = new WindowInteropHelper(this).Handle;
+        _ = DwmSetWindowAttribute(handle, DwmwaUseImmersiveDarkMode, ref darkMode, sizeof(int));
+    }
 
     private async void StartButton_OnClick(object sender, RoutedEventArgs e)
     {
@@ -276,4 +288,11 @@ public partial class MainWindow : Window
 
     private static string FormatUtc(DateTimeOffset value) =>
         value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+
+    [DllImport("dwmapi.dll", PreserveSig = true)]
+    private static extern int DwmSetWindowAttribute(
+        IntPtr windowHandle,
+        int attribute,
+        ref int attributeValue,
+        int attributeSize);
 }
