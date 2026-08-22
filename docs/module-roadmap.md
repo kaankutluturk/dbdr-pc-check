@@ -9,16 +9,16 @@ The product remains one portable executable with internal adapters and one norma
 | String Explorer | Preview | Search normalized file metadata now; add bounded printable-string extraction only for already referenced files | Never read raw process memory or crawl arbitrary files |
 | USBDeview | Preview | Existing privacy-minimized PnP inventory, then time-bounded device-install artifact correlation | Unique serials and instance IDs remain excluded |
 | Saved Files Viewer | Privacy gated | None under the current contract | Personal filenames and save paths are excluded |
-| PowerShell Parser | Privacy gated | A future engine-lifecycle metadata adapter may be acceptable | Command, script-block and terminal history remain excluded |
+| PowerShell Parser | Preview | Opt-in time-bounded engine/provider lifecycle event metadata | Command, script-block, event payload, user and terminal history remain excluded |
 | Paths Parser | Planned | Cross-source path correlation over redacted normalized evidence; later LNK/Jump List review | Personal recent-file content needs separate approval |
 | MFT Explorer | Planned | Read-only, time-bounded NTFS parser with strict caps and redaction | Raw-volume access, scale, timestamp semantics and recovery records need tests |
 | Kernel Live Dump | Privacy gated | None in this suite | Kernel dumps can contain user-mode pages and violate the no-memory boundary |
 | Journal Trace | Planned | Read-only `$UsnJrnl:$J` parser with explicit journal-ID and range coverage | A missing/rotated journal is a coverage gap, never evasion proof |
-| Crashed File Viewer | Planned | WER metadata and referenced executable identity only | Dumps and memory-derived contents remain excluded |
+| Crashed File Viewer | Preview | Opt-in Application Error event 1000 metadata and redacted executable identity | Messages, report IDs, dumps and memory-derived contents remain excluded |
 | Browsing History View | Privacy gated | None in this suite | Browser history is excluded |
 | Browser Downloads View | Privacy gated | None in this suite | Browser download records are excluded |
 | BAM Parser | Available | Existing time-bounded BAM adapter | Windows layout and retention vary |
-| Amcache Parser | Planned | Prefer a reviewed MIT-licensed parser/library integration with locked-hive handling | Redaction, inventory semantics and fixtures required |
+| Amcache Parser | Preview | Capped live registry adapter for executable application inventory with redacted paths | Current inventory is not execution proof; no locked-hive fallback yet |
 | SRUM Explorer | Planned | Time-bounded application usage only, with identities and destinations removed | ESE parsing, SOFTWARE mapping and minimization tests required |
 | YARA + entropy | Available | libyara 4.5.5, embedded baseline, optional custom rules and full-file Shannon entropy | Scans only already referenced files; matches are leads |
 

@@ -10,7 +10,7 @@ namespace Dbdr.PcCheck.Packaging;
 
 public sealed class EvidenceBundleWriter
 {
-    public const string EvidenceSchemaVersion = "0.3.0";
+    public const string EvidenceSchemaVersion = "0.4.0";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -76,7 +76,7 @@ public sealed class EvidenceBundleWriter
 
             await File.WriteAllTextAsync(
                 Path.Combine(workingDirectory, "privacy.txt"),
-                "DBDR Evidence Suite development bundle: local-only, not encrypted, and not a moderation verdict. Depending on operator selection it can include redacted process/module paths, file metadata, byte entropy, YARA rule identifiers and ruleset hashes, time-bounded Windows execution artifacts, persistence configuration and privacy-minimized device facts. It excludes browser/chat data, credentials, PowerShell history, unique device serials, matched byte content and process memory. Treat as confidential system metadata. See PRIVACY.md in the source repository.",
+                "DBDR Evidence Suite development bundle: local-only, not encrypted, and not a moderation verdict. Depending on operator selection it can include sensitive redacted executable paths, application inventory, crash metadata, PowerShell engine lifecycle metadata, byte entropy, YARA rule identifiers, time-bounded Windows execution artifacts, persistence configuration and privacy-minimized device facts. It excludes browser/chat data, credentials, commands and script content, crash dumps, unique device serials, matched byte content and process or kernel memory. Restrict access, apply a case-specific retention period and delete the bundle when no longer required. See PRIVACY.md in the source repository.",
                 Encoding.UTF8,
                 cancellationToken).ConfigureAwait(false);
 

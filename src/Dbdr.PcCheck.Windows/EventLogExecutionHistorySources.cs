@@ -58,6 +58,71 @@ public sealed class CodeIntegrityEventSource : EventLogExecutionHistorySource
         });
 }
 
+public sealed class ApplicationCrashEventSource(PathRedactor redactor) : EventLogExecutionHistorySource
+{
+    public override string Name => "Application Error crash metadata";
+
+    protected override string LogName => "Application";
+
+    protected override string Query => "*[System[Provider[@Name='Application Error'] and (EventID=1000)]]";
+
+    protected override EvidenceRecord CreateRecord(EventRecord record, DateTimeOffset timestampUtc)
+    {
+        var properties = record.Properties;
+        return new EvidenceRecord(
+            "execution-history",
+            "event.application_crash",
+            "Windows Event Log:Application Error/1000",
+            DateTimeOffset.UtcNow,
+            timestampUtc,
+            new Dictionary<string, string?>
+            {
+                ["eventId"] = record.Id.ToString(CultureInfo.InvariantCulture),
+                ["recordId"] = record.RecordId?.ToString(CultureInfo.InvariantCulture),
+                ["provider"] = record.ProviderName,
+                ["applicationName"] = ValueAt(properties, 0),
+                ["applicationVersion"] = ValueAt(properties, 1),
+                ["faultModuleName"] = ValueAt(properties, 3),
+                ["faultModuleVersion"] = ValueAt(properties, 4),
+                ["exceptionCode"] = ValueAt(properties, 6),
+                ["applicationPath"] = redactor.Redact(ValueAt(properties, 10)),
+                ["faultModulePath"] = redactor.Redact(ValueAt(properties, 11)),
+                ["timestampBasis"] = "Application Error event creation time",
+            });
+    }
+}
+
+public sealed class PowerShellEngineEventSource : EventLogExecutionHistorySource
+{
+    public override string Name => "PowerShell engine and provider lifecycle";
+
+    protected override string LogName => "Windows PowerShell";
+
+    protected override string Query => "*[System[(EventID=400 or EventID=403 or EventID=600)]]";
+
+    protected override EvidenceRecord CreateRecord(EventRecord record, DateTimeOffset timestampUtc) => new(
+        "execution-history",
+        "event.powershell_engine",
+        "Windows Event Log:Windows PowerShell metadata",
+        DateTimeOffset.UtcNow,
+        timestampUtc,
+        new Dictionary<string, string?>
+        {
+            ["eventId"] = record.Id.ToString(CultureInfo.InvariantCulture),
+            ["recordId"] = record.RecordId?.ToString(CultureInfo.InvariantCulture),
+            ["provider"] = record.ProviderName,
+            ["level"] = record.Level?.ToString(CultureInfo.InvariantCulture),
+            ["lifecycle"] = record.Id switch
+            {
+                400 => "engine-start",
+                403 => "engine-stop",
+                600 => "provider-lifecycle",
+                _ => "selected-metadata",
+            },
+            ["timestampBasis"] = "PowerShell event creation time; event payload excluded",
+        });
+}
+
 public abstract class EventLogExecutionHistorySource : IExecutionHistorySource
 {
     private const int MaximumEventsToInspect = 2000;

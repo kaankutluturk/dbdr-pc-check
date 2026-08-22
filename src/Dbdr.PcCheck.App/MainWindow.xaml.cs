@@ -126,7 +126,7 @@ public partial class MainWindow : Window
             var collectionStartedUtc = DateTimeOffset.UtcNow;
             var version = Assembly.GetExecutingAssembly()
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                .InformationalVersion ?? "0.3.1-development";
+                .InformationalVersion ?? "0.4.0-development";
             var context = new CollectionContext(
                 caseId,
                 reviewWindowStartUtc,
@@ -141,6 +141,7 @@ public partial class MainWindow : Window
                 : null;
             var fileInspector = new ExecutableFileInspector(yaraScanner);
             var disabledSources = new List<string>();
+            var executionSources = new List<IExecutionHistorySource>();
             var collectors = new List<IEvidenceCollector>
             {
                 new ProcessSnapshotCollector(processSnapshotProvider, redactor),
@@ -159,13 +160,13 @@ public partial class MainWindow : Window
 
             if (ExecutionHistoryCheckBox.IsChecked == true)
             {
-                collectors.Add(new ExecutionHistoryCollector(
+                executionSources.AddRange(
                 [
                     new BamExecutionHistorySource(redactor),
                     new PrefetchExecutionHistorySource(redactor),
                     new ServiceInstallEventSource(redactor),
                     new CodeIntegrityEventSource(),
-                ]));
+                ]);
             }
             else
             {
@@ -176,6 +177,30 @@ public partial class MainWindow : Window
                     "Service Control Manager installation events",
                     "Windows Code Integrity warnings and errors",
                 ]);
+            }
+
+            if (ExtendedForensicsCheckBox.IsChecked == true)
+            {
+                executionSources.AddRange(
+                [
+                    new AmcacheExecutionHistorySource(redactor),
+                    new ApplicationCrashEventSource(redactor),
+                    new PowerShellEngineEventSource(),
+                ]);
+            }
+            else
+            {
+                disabledSources.AddRange(
+                [
+                    "Amcache application inventory",
+                    "Application Error crash metadata",
+                    "PowerShell engine and provider lifecycle",
+                ]);
+            }
+
+            if (executionSources.Count > 0)
+            {
+                collectors.Add(new ExecutionHistoryCollector(executionSources));
             }
 
             if (PersistenceCheckBox.IsChecked == true)
@@ -429,6 +454,7 @@ public partial class MainWindow : Window
         PersistenceCheckBox.IsEnabled = !isRunning;
         ScheduledTasksCheckBox.IsEnabled = !isRunning;
         DeviceInventoryCheckBox.IsEnabled = !isRunning;
+        ExtendedForensicsCheckBox.IsEnabled = !isRunning;
         YaraScanCheckBox.IsEnabled = !isRunning;
         YaraRulesPathTextBox.IsEnabled = !isRunning;
         YaraRulesBrowseButton.IsEnabled = !isRunning;

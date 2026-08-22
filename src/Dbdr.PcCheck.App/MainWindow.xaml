@@ -41,7 +41,7 @@
                             Background="{StaticResource PrimarySoft}"
                             BorderBrush="{StaticResource BorderStrong}"
                             BorderThickness="1" CornerRadius="4">
-                        <TextBlock Text="DEVELOPMENT  •  0.3.1" FontSize="10" FontWeight="SemiBold"
+                        <TextBlock Text="DEVELOPMENT  •  0.4.0" FontSize="10" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextSecondary}" />
                     </Border>
                 </StackPanel>
@@ -213,6 +213,9 @@
                                         <CheckBox x:Name="DeviceInventoryCheckBox" Content="Privacy-minimized devices" IsChecked="True"
                                                   Margin="0,10,0,0"
                                                   ToolTip="Device classes and model IDs; serial instance IDs excluded" />
+                                        <CheckBox x:Name="ExtendedForensicsCheckBox" Content="Extended forensic metadata" IsChecked="False"
+                                                  Margin="0,10,0,0"
+                                                  ToolTip="Opt-in Amcache executable inventory, crash metadata and PowerShell engine lifecycle; content and dumps excluded" />
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
@@ -249,7 +252,7 @@
                                 <StackPanel Margin="0,0,16,0">
                                     <TextBlock Text="Authorization" Style="{StaticResource SectionTitleStyle}" />
                                     <TextBlock Margin="0,5,0,9" Style="{StaticResource MutedTextStyle}"
-                                               Text="Read-only system evidence only. No credentials, browser/chat content, screenshots, personal documents or process memory." />
+                                               Text="Read-only system evidence. Selected sources may expose sensitive executable paths and application activity metadata; content, credentials, browser data and memory remain excluded." />
                                     <CheckBox x:Name="ConsentCheckBox">
                                         <TextBlock Text="I authorize this local collection and understand that warnings are review leads, not verdicts."
                                                    TextWrapping="Wrap" />
@@ -485,12 +488,12 @@
                             <StackPanel Margin="0,0,18,18">
                                 <TextBlock Text="Read-only scope" Style="{StaticResource SectionTitleStyle}" />
                                 <TextBlock Margin="0,6,0,0" Style="{StaticResource MutedTextStyle}"
-                                           Text="Processes, DBD modules, approved Windows execution and persistence metadata, hashes, signatures and privacy-minimized device facts." />
+                                           Text="Processes, DBD modules, approved execution and persistence metadata, hashes, signatures and privacy-minimized device facts. Opt-in sources add Amcache executable inventory, crash metadata and PowerShell lifecycle events." />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Margin="0,0,0,18">
                                 <TextBlock Text="Never collected" Style="{StaticResource SectionTitleStyle}" />
                                 <TextBlock Margin="0,6,0,0" Style="{StaticResource MutedTextStyle}"
-                                           Text="Credentials, browser or chat data, clipboard, screenshots, personal documents, command history, unique device serials or process memory." />
+                                           Text="Credentials, browser URLs/downloads/cookies, chat data, clipboard, screenshots, personal documents, command or script content, unique device serials, crash dumps or process/kernel memory." />
                             </StackPanel>
                             <StackPanel Grid.Row="1" Margin="0,0,18,0">
                                 <TextBlock Text="Interpretation" Style="{StaticResource SectionTitleStyle}" />
@@ -500,7 +503,7 @@
                             <StackPanel Grid.Row="1" Grid.Column="1">
                                 <TextBlock Text="Local handling" Style="{StaticResource SectionTitleStyle}" />
                                 <TextBlock Margin="0,6,0,0" Style="{StaticResource MutedTextStyle}"
-                                           Text="The ZIP stays on this PC and is not encrypted. Treat it as confidential system metadata and keep it out of public channels." />
+                                           Text="The ZIP stays on this PC and is not encrypted. Restrict access, retain it only for the case period, delete it when no longer required and keep it out of public channels." />
                             </StackPanel>
                         </Grid>
                     </Border>

@@ -30,7 +30,7 @@ The release target is a self-contained `win-x64` single-file executable. It does
 
 ## Search contract
 
-The module catalog searches names, categories, capabilities, boundaries and evidence-kind aliases. The evidence explorer searches normalized record metadata and field keys/values, with a second scope filter for one module, source or record kind. It does not reopen the raw Windows sources and therefore cannot silently broaden collection.
+The module catalog searches names, categories, capabilities, boundaries and evidence-kind aliases. The evidence explorer searches normalized record metadata and field keys/values, with a second scope filter for one module, source or record kind. It does not reopen the raw Windows sources and therefore cannot silently broaden collection. The extended forensic metadata group is off by default and contributes only normalized Amcache executable inventory, Application Error crash metadata and PowerShell engine/provider lifecycle metadata.
 
 ## Extension contract
 

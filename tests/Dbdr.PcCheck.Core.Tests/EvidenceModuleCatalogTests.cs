@@ -11,6 +11,9 @@ public sealed class EvidenceModuleCatalogTests
         Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "bam" && module.Availability == ModuleAvailability.Available);
         Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "amcache");
         Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "srum");
+        Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "amcache" && module.Availability == ModuleAvailability.Preview);
+        Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "crashed-files" && module.Availability == ModuleAvailability.Preview);
+        Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "powershell" && module.Availability == ModuleAvailability.Preview);
         Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "browser-history" && module.Availability == ModuleAvailability.PrivacyRestricted);
         Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "kernel-live-dump" && module.Availability == ModuleAvailability.PrivacyRestricted);
     }
