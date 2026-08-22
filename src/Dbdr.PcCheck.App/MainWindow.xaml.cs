@@ -10,6 +10,7 @@ using Dbdr.PcCheck.Core;
 using Dbdr.PcCheck.Core.Models;
 using Dbdr.PcCheck.Packaging;
 using Dbdr.PcCheck.Windows;
+using Microsoft.Win32;
 
 namespace Dbdr.PcCheck.App;
 
@@ -18,6 +19,7 @@ public partial class MainWindow : Window
     private const int DwmwaUseImmersiveDarkMode = 20;
     private CancellationTokenSource? _cancellationTokenSource;
     private string? _lastBundlePath;
+    private CollectionRunResult? _lastResult;
 
     public MainWindow()
     {
@@ -27,9 +29,15 @@ public partial class MainWindow : Window
         var now = DateTimeOffset.UtcNow;
         ReviewWindowStartTextBox.Text = FormatUtc(now.AddHours(-2));
         ReviewWindowEndTextBox.Text = FormatUtc(now);
+        RefreshModuleCatalog();
+        RefreshEvidenceSearch();
     }
 
     public ObservableCollection<string> Activity { get; } = [];
+
+    public ObservableCollection<ModuleCardViewModel> VisibleModules { get; } = [];
+
+    public ObservableCollection<string> EvidenceSearchResults { get; } = [];
 
     protected override void OnSourceInitialized(EventArgs e)
     {
@@ -88,6 +96,20 @@ public partial class MainWindow : Window
             return;
         }
 
+        var customYaraRules = YaraRulesPathTextBox.Text.Trim();
+        if (YaraScanCheckBox.IsChecked == true
+            && customYaraRules.Length > 0
+            && !File.Exists(customYaraRules))
+        {
+            MessageBox.Show(
+                this,
+                "The selected custom YARA rule file does not exist.",
+                "Invalid YARA rules",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
         SetRunningState(true);
         Activity.Clear();
         ActivityNavButton.IsChecked = true;
@@ -98,7 +120,7 @@ public partial class MainWindow : Window
             var collectionStartedUtc = DateTimeOffset.UtcNow;
             var version = Assembly.GetExecutingAssembly()
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                .InformationalVersion ?? "0.2.0-development";
+                .InformationalVersion ?? "0.3.0-development";
             var context = new CollectionContext(
                 caseId,
                 reviewWindowStartUtc,
@@ -108,7 +130,10 @@ public partial class MainWindow : Window
             var redactor = new PathRedactor();
             var processSnapshotProvider = new LiveProcessSnapshotProvider();
             var gameModuleEnumerator = new GameModuleEnumerator();
-            var fileInspector = new ExecutableFileInspector();
+            using var yaraScanner = YaraScanCheckBox.IsChecked == true
+                ? new YaraFileScanner(customYaraRules.Length == 0 ? null : customYaraRules)
+                : null;
+            var fileInspector = new ExecutableFileInspector(yaraScanner);
             var disabledSources = new List<string>();
             var collectors = new List<IEvidenceCollector>
             {
@@ -186,6 +211,8 @@ public partial class MainWindow : Window
             {
                 Findings = EvidenceAnalyzer.Analyze(collectedResult),
             };
+            _lastResult = result;
+            RefreshEvidenceSearch();
 
             StatusTextBlock.Text = "Packaging local evidence bundle";
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
@@ -253,6 +280,78 @@ public partial class MainWindow : Window
         });
     }
 
+    private void YaraRulesBrowseButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Select optional custom YARA rules",
+            Filter = "YARA rules (*.yar;*.yara)|*.yar;*.yara|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false,
+        };
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            YaraRulesPathTextBox.Text = dialog.FileName;
+        }
+    }
+
+    private void ModuleSearchTextBox_OnTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) =>
+        RefreshModuleCatalog();
+
+    private void EvidenceSearchTextBox_OnTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) =>
+        RefreshEvidenceSearch();
+
+    private void RefreshModuleCatalog()
+    {
+        var query = ModuleSearchTextBox?.Text;
+        VisibleModules.Clear();
+        foreach (var module in EvidenceModuleCatalog.Search(query))
+        {
+            VisibleModules.Add(ModuleCardViewModel.From(module));
+        }
+    }
+
+    private void RefreshEvidenceSearch()
+    {
+        EvidenceSearchResults.Clear();
+        if (_lastResult is null)
+        {
+            EvidenceSearchResults.Add("Run an authorized collection to search its normalized evidence.");
+            return;
+        }
+
+        var records = EvidenceSearchEngine.Search(
+            _lastResult.Records,
+            EvidenceSearchTextBox?.Text,
+            EvidenceModuleScopeTextBox?.Text);
+        foreach (var record in records.Take(500))
+        {
+            EvidenceSearchResults.Add(FormatEvidenceRecord(record));
+        }
+
+        if (records.Count == 0)
+        {
+            EvidenceSearchResults.Add("No normalized evidence records match this query and module scope.");
+        }
+        else if (records.Count > 500)
+        {
+            EvidenceSearchResults.Add($"Showing 500 of {records.Count.ToString(CultureInfo.InvariantCulture)} matches. Refine the search to narrow the result set.");
+        }
+    }
+
+    private static string FormatEvidenceRecord(EvidenceRecord record)
+    {
+        var timestamp = record.SourceTimestampUtc ?? record.CollectedAtUtc;
+        var fields = string.Join(
+            "  ·  ",
+            record.Fields
+                .Where(field => !string.IsNullOrWhiteSpace(field.Value))
+                .Take(4)
+                .Select(field => $"{field.Key}={field.Value}"));
+        return $"{FormatUtc(timestamp)}  [{record.Module}/{record.Kind}]  {fields}";
+    }
+
     private void UpdateProgress(CollectionProgress progress)
     {
         var count = progress.Current.HasValue && progress.Total.HasValue
@@ -284,6 +383,9 @@ public partial class MainWindow : Window
         PersistenceCheckBox.IsEnabled = !isRunning;
         ScheduledTasksCheckBox.IsEnabled = !isRunning;
         DeviceInventoryCheckBox.IsEnabled = !isRunning;
+        YaraScanCheckBox.IsEnabled = !isRunning;
+        YaraRulesPathTextBox.IsEnabled = !isRunning;
+        YaraRulesBrowseButton.IsEnabled = !isRunning;
     }
 
     private static string FormatUtc(DateTimeOffset value) =>

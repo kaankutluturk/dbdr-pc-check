@@ -184,14 +184,16 @@ public static class HtmlReportRenderer
             return;
         }
 
-        builder.Append("<div class=\"scroll\"><table><thead><tr><th>Process</th><th>Module</th><th>Path</th><th>Signature</th><th>Stable</th><th>SHA-256</th><th>Error</th></tr></thead><tbody>");
+        builder.Append("<div class=\"scroll\"><table><thead><tr><th>Process</th><th>Module</th><th>Path</th><th>Signature</th><th>Entropy</th><th>YARA</th><th>Stable</th><th>SHA-256</th><th>Error</th></tr></thead><tbody>");
         foreach (var record in modules.OrderBy(record => Get(record, "modulePath") ?? string.Empty, StringComparer.OrdinalIgnoreCase))
         {
             builder.Append("<tr><td>").Append(Encode($"{Get(record, "processName")} ({Get(record, "processId")})"))
                 .Append("</td><td>").Append(Encode(Get(record, "moduleName")))
-                .Append("</td><td class=\"mono\">").Append(Encode(Get(record, "modulePath")))
-                .Append("</td><td>").Append(Encode(Get(record, "authenticodeStatus")))
-                .Append("</td><td>").Append(Encode(Get(record, "identityStableDuringInspection")))
+                    .Append("</td><td class=\"mono\">").Append(Encode(Get(record, "modulePath")))
+                    .Append("</td><td>").Append(Encode(Get(record, "authenticodeStatus")))
+                    .Append("</td><td>").Append(Encode(Get(record, "entropyBitsPerByte")))
+                    .Append("</td><td>").Append(Encode(Get(record, "yaraMatches") ?? Get(record, "yaraStatus")))
+                    .Append("</td><td>").Append(Encode(Get(record, "identityStableDuringInspection")))
                 .Append("</td><td class=\"mono\">").Append(Encode(Get(record, "sha256")))
                 .Append("</td><td>").Append(Encode(Get(record, "fileInspectionError"))).Append("</td></tr>");
         }
@@ -304,12 +306,14 @@ public static class HtmlReportRenderer
             .Append(files.Length.ToString(CultureInfo.InvariantCulture)).Append(")</span></summary>");
         if (files.Length > 0)
         {
-            builder.Append("<div class=\"scroll\"><table><thead><tr><th>Path</th><th>Referenced by</th><th>Signature</th><th>Stable</th><th>SHA-256</th><th>Error</th></tr></thead><tbody>");
+            builder.Append("<div class=\"scroll\"><table><thead><tr><th>Path</th><th>Referenced by</th><th>Signature</th><th>Entropy</th><th>YARA</th><th>Stable</th><th>SHA-256</th><th>Error</th></tr></thead><tbody>");
             foreach (var record in files.OrderBy(record => Get(record, "executablePath") ?? string.Empty, StringComparer.OrdinalIgnoreCase))
             {
                 builder.Append("<tr><td class=\"mono\">").Append(Encode(Get(record, "executablePath")))
                     .Append("</td><td>").Append(Encode(Get(record, "processNames")))
                     .Append("</td><td>").Append(Encode(Get(record, "authenticodeStatus")))
+                    .Append("</td><td>").Append(Encode(Get(record, "entropyBitsPerByte")))
+                    .Append("</td><td>").Append(Encode(Get(record, "yaraMatches") ?? Get(record, "yaraStatus")))
                     .Append("</td><td>").Append(Encode(Get(record, "identityStableDuringInspection")))
                     .Append("</td><td class=\"mono\">").Append(Encode(Get(record, "sha256")))
                     .Append("</td><td>").Append(Encode(Get(record, "fileInspectionError"))).Append("</td></tr>");

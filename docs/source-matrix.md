@@ -5,6 +5,8 @@
 | `Win32_Process` | Preserve live process identity and parentage | No command lines or owners | Process creation time from WMI | Snapshot unavailable/incomplete |
 | `Process.Modules` | Record file-backed modules loaded by live DBD processes | DBD-named processes only; no addresses or memory | No source timestamp | Module-list coverage gap |
 | File APIs / WinVerifyTrust | Hash and inspect referenced executables | Referenced paths only; no file copies | File times remain labeled fields | Per-file inspection gap |
+| Shannon entropy | Identify compressed/packed-like byte distributions for corroboration | Calculated during the same full-file SHA-256 read; no extra file scope | No source timestamp | Per-file inspection gap |
+| libyara 4.5.5 | Match embedded and optional custom rules against referenced files | Rule IDs and ruleset hashes only; no matched bytes, offsets or file copies | No source timestamp | Per-file YARA coverage gap |
 | BAM registry | Time-bounded execution observation | Explicit review window; SIDs excluded | BAM FILETIME | Layout/key access gap |
 | Prefetch directory | Corroborating recent Prefetch metadata | `.pf` files in explicit review window | File last-write time, not parsed run time | Directory/access gap |
 | System event 7045 | Service-install observation | Selected event ID only; account field/message excluded | Event creation time | Channel/query gap |
@@ -13,4 +15,4 @@
 | Scheduled task definitions | Current task persistence configuration | Command only; arguments/principals excluded | Registration date where parseable | Per-task or directory gap |
 | `Win32_PnPEntity` | Privacy-minimized device context | Unique IDs and serial suffixes excluded | No source timestamp | Device-inventory gap |
 
-Planned PCA/Amcache, USN, MFT and SRUM adapters remain disabled until their parsing, retention, redaction and timestamp behavior has a separate review.
+Planned Amcache, USN, MFT, SRUM, crash-metadata and path-correlation adapters remain disabled until their parsing, retention, redaction and timestamp behavior has a separate review. Browser, PowerShell-history and memory-dump collection remain privacy-gated exclusions.

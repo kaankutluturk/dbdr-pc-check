@@ -2,7 +2,7 @@
 
 ## Purpose
 
-DBDR Evidence Suite creates a proportionate system-evidence snapshot for an authorized PC check. The v0.2.0 development build writes the result locally and performs no network upload.
+DBDR Evidence Suite creates a proportionate system-evidence snapshot for an authorized PC check. The v0.3.0 development build writes the result locally and performs no network upload.
 
 ## Always-collected case metadata
 
@@ -11,10 +11,11 @@ DBDR Evidence Suite creates a proportionate system-evidence snapshot for an auth
 - Windows/runtime version, architecture, time zone, uptime and whether the collector is elevated.
 - Module duration, warnings, access failures and source-coverage status.
 
-## Operator-selectable evidence in v0.2.0
+## Operator-selectable evidence in v0.3.0
 
 - Running process name, process ID, parent process ID, session ID, creation time and redacted executable path where Windows exposes it.
-- For accessible executable files: redacted path, size, timestamps, SHA-256, version metadata, Authenticode status and whether basic identity remained stable during inspection.
+- For accessible executable files: redacted path, size, timestamps, SHA-256, version metadata, Authenticode status, Shannon entropy and whether basic identity remained stable during inspection.
+- For the same bounded executable set: YARA scan status, matching rule identifiers, ruleset labels and ruleset SHA-256. Matched byte content, offsets and file copies are excluded. An optional custom rule file is read in place and is not copied into the bundle.
 - For running processes whose name contains `DeadByDaylight`: file-backed module name and redacted path plus the same file metadata where accessible.
 - Time-bounded BAM registry observations.
 - Time-bounded Prefetch **file metadata**. The last-write timestamp is labeled as file metadata and is not presented as a parsed execution timestamp.
@@ -46,10 +47,11 @@ The suite does not collect:
 - module base addresses;
 - unique device-instance identifiers or serial-number suffixes;
 - copies of executables, DLLs or personal files; or
+- YARA matched bytes, offsets or custom rule contents; or
 - automatic network reputation lookups containing player evidence.
 
 ## Local handling
 
-The v0.2.0 ZIP is not encrypted. It may contain sensitive system metadata and must be treated as confidential. Do not post bundles in public Discord channels, GitHub issues or other public locations.
+The v0.3.0 ZIP is not encrypted. It may contain sensitive system metadata and must be treated as confidential. Do not post bundles in public Discord channels, GitHub issues or other public locations.
 
 Production use requires a documented controller, purpose, lawful basis, retention period, access policy, deletion procedure and appeal path. Any future upload must use authenticated encryption and explicit case-scoped authorization. A production client must never embed a private signing or decryption key.

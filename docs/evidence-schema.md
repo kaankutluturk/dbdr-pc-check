@@ -1,6 +1,6 @@
-# Evidence schema 0.2.0
+# Evidence schema 0.3.0
 
-`case.json` contains `evidenceSchemaVersion: "0.2.0"` and `analysisProfileVersion: "0.2.0"`.
+`case.json` contains `evidenceSchemaVersion: "0.3.0"` and `analysisProfileVersion: "0.3.0"`.
 
 | Entry | Purpose |
 | --- | --- |
@@ -49,7 +49,19 @@ Each item in `findings.json` contains a stable run-local ID, disposition, title,
 
 Findings are deterministic summaries of collected evidence and collection failures. They are not cheating verdicts and do not encode moderation outcomes.
 
-## v0.2.0 record kinds
+## Binary triage fields
+
+`process.module` and `file.metadata` records may include:
+
+- `entropyBitsPerByte` and `entropyClassification` (`ordinary`, `elevated` or `high`);
+- `yaraStatus` (`disabled`, `no-match`, `matched` or `unavailable`);
+- `yaraMatchCount` and `yaraMatches`, containing rule identifiers only;
+- `yaraRulesets` and `yaraRulesetSha256`, which identify the rule material used; and
+- `yaraError`, containing only an exception type when the scan was unavailable.
+
+The schema never stores YARA match bytes, offsets, custom rule contents or a copy of the scanned file. Entropy and YARA results are observations. The analysis profile creates a neutral review item for a YARA match or for the correlation of high entropy with a non-valid signature; neither is a verdict.
+
+## v0.3.0 record kinds
 
 - `system.snapshot`
 - `process.snapshot`

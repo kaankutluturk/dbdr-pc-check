@@ -5,7 +5,7 @@ namespace Dbdr.PcCheck.Core;
 
 public static class EvidenceAnalyzer
 {
-    public const string AnalysisProfileVersion = "0.2.0";
+    public const string AnalysisProfileVersion = "0.3.0";
 
     public static IReadOnlyList<EvidenceFinding> Analyze(CollectionRunResult result)
     {
@@ -48,6 +48,7 @@ public static class EvidenceAnalyzer
         {
             AnalyzeCoverage(record, candidates);
             AnalyzeFileInspection(record, candidates);
+            AnalyzeBinaryTriage(record, candidates);
             AnalyzePersistence(record, candidates);
             AnalyzeCodeIntegrity(record, candidates);
         }
@@ -69,6 +70,51 @@ public static class EvidenceAnalyzer
                 candidate.Module,
                 candidate.RecordKind))
             .ToArray();
+    }
+
+    private static void AnalyzeBinaryTriage(EvidenceRecord record, ICollection<FindingCandidate> findings)
+    {
+        if (record.Kind is not ("process.module" or "file.metadata"))
+        {
+            return;
+        }
+
+        var path = Get(record, "modulePath") ?? Get(record, "executablePath") ?? "A referenced file";
+        if (int.TryParse(Get(record, "yaraMatchCount"), NumberStyles.None, CultureInfo.InvariantCulture, out var matchCount)
+            && matchCount > 0)
+        {
+            findings.Add(new FindingCandidate(
+                FindingDisposition.NeedsReview,
+                "YARA rule match on a referenced file",
+                $"{path} matched {Get(record, "yaraMatches") ?? matchCount.ToString(CultureInfo.InvariantCulture)}. A rule match is a review lead, not proof; validate the rule rationale and corroborate the file identity.",
+                record.Module,
+                record.Kind));
+        }
+
+        if (string.Equals(Get(record, "yaraStatus"), "unavailable", StringComparison.OrdinalIgnoreCase))
+        {
+            findings.Add(new FindingCandidate(
+                FindingDisposition.CoverageGap,
+                "YARA scan unavailable",
+                $"{path}: {Get(record, "yaraError") ?? "The ruleset could not scan this file."}",
+                record.Module,
+                record.Kind));
+        }
+
+        var isHighEntropy = string.Equals(
+            Get(record, "entropyClassification"),
+            "high",
+            StringComparison.OrdinalIgnoreCase);
+        var signature = Get(record, "authenticodeStatus");
+        if (isHighEntropy && !string.Equals(signature, "valid", StringComparison.OrdinalIgnoreCase))
+        {
+            findings.Add(new FindingCandidate(
+                FindingDisposition.NeedsReview,
+                "High-entropy file without a valid signature",
+                $"{path} measured {Get(record, "entropyBitsPerByte") ?? "unknown"} bits/byte and its signature status was {signature ?? "unknown"}. Packed or compressed legitimate software is a common alternative explanation.",
+                record.Module,
+                record.Kind));
+        }
     }
 
     private static void AnalyzeCoverage(EvidenceRecord record, ICollection<FindingCandidate> findings)

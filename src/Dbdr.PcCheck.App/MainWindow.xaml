@@ -41,7 +41,7 @@
                             Background="{StaticResource PrimarySoft}"
                             BorderBrush="{StaticResource BorderStrong}"
                             BorderThickness="1" CornerRadius="4">
-                        <TextBlock Text="DEVELOPMENT  •  0.2" FontSize="10" FontWeight="SemiBold"
+                        <TextBlock Text="DEVELOPMENT  •  0.3" FontSize="10" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextSecondary}" />
                     </Border>
                 </StackPanel>
@@ -51,6 +51,10 @@
                                FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextQuiet}" />
                     <RadioButton x:Name="SetupNavButton" GroupName="Navigation" Content="NEW CHECK"
                                  Style="{StaticResource NavButtonStyle}" IsChecked="True" />
+                    <RadioButton x:Name="ModulesNavButton" GroupName="Navigation" Content="MODULE CATALOG"
+                                 Style="{StaticResource NavButtonStyle}" />
+                    <RadioButton x:Name="ExplorerNavButton" GroupName="Navigation" Content="EVIDENCE EXPLORER"
+                                 Style="{StaticResource NavButtonStyle}" />
                     <RadioButton x:Name="ActivityNavButton" GroupName="Navigation" Content="COLLECTION ACTIVITY"
                                  Style="{StaticResource NavButtonStyle}" />
                     <RadioButton x:Name="PrivacyNavButton" GroupName="Navigation" Content="BOUNDARY &amp; PRIVACY"
@@ -132,6 +136,27 @@
 
                         <Border Style="{StaticResource CardStyle}" Margin="0,14,0,0">
                             <StackPanel>
+                                <TextBlock Text="Binary triage" Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Text="Entropy is calculated during the existing SHA-256 read. YARA scans only those same referenced executables and DBD modules."
+                                           Margin="0,6,0,14" Style="{StaticResource MutedTextStyle}" />
+                                <CheckBox x:Name="YaraScanCheckBox" Content="Run embedded DBDR YARA baseline" IsChecked="True" />
+                                <Grid Margin="22,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="YaraRulesPathTextBox" Height="36"
+                                             ToolTip="Optional .yar or .yara file; its contents are not copied into the evidence bundle" />
+                                    <Button x:Name="YaraRulesBrowseButton" Grid.Column="1" Content="Custom rules…"
+                                            Height="36" Margin="10,0,0,0" Click="YaraRulesBrowseButton_OnClick" />
+                                </Grid>
+                                <TextBlock Text="The bundle records rule IDs and ruleset SHA-256 only. Rule hits remain review leads, never verdicts."
+                                           Margin="22,7,0,0" FontSize="12" Foreground="{StaticResource TextQuiet}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource CardStyle}" Margin="0,14,0,0">
+                            <StackPanel>
                                 <TextBlock Text="Evidence sources" Style="{StaticResource SectionTitleStyle}" />
                                 <TextBlock Text="Live state is always preserved first. Optional modules run afterward and remain independently cancellable."
                                            Margin="0,6,0,14" Style="{StaticResource MutedTextStyle}" />
@@ -195,6 +220,112 @@
                                     Style="{StaticResource PrimaryButtonStyle}" Click="StartButton_OnClick" />
                         </StackPanel>
                     </Grid>
+                </Border>
+            </Grid>
+
+            <Grid x:Name="ModuleCatalogPage" Margin="34,28">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsChecked, ElementName=ModulesNavButton}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="PORTABLE MODULE PLATFORM" Style="{StaticResource EyebrowStyle}" />
+                    <TextBlock Text="Module catalog" Margin="0,4,0,0" Style="{StaticResource PageTitleStyle}" />
+                    <TextBlock Text="One signed launcher, internal read-only adapters, shared search and no installer, service or persistent driver."
+                               Margin="0,6,0,0" Style="{StaticResource MutedTextStyle}" />
+                </StackPanel>
+                <TextBox x:Name="ModuleSearchTextBox" Grid.Row="1" Margin="0,24,0,14"
+                         ToolTip="Search module names, categories, capabilities or evidence kinds"
+                         TextChanged="ModuleSearchTextBox_OnTextChanged" />
+                <ListBox Grid.Row="2" ItemsSource="{Binding VisibleModules}" Background="Transparent" BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource CardStyle}" Margin="0,0,0,10" Padding="18">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="{Binding DisplayName}" FontSize="17" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Category}" Margin="12,4,0,0" FontSize="10" FontWeight="Bold"
+                                                       Foreground="{StaticResource TextQuiet}" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Description}" Margin="0,7,0,0"
+                                                   Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding Boundary}" Margin="0,5,20,0" FontSize="12"
+                                                   Foreground="{StaticResource TextQuiet}" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                                        <Border Padding="9,4" BorderBrush="{Binding StatusColor}" BorderThickness="1" CornerRadius="4">
+                                            <TextBlock Text="{Binding Status}" Foreground="{Binding StatusColor}" FontSize="10" FontWeight="Bold" />
+                                        </Border>
+                                        <TextBlock Text="{Binding Access}" Margin="0,8,0,0" HorizontalAlignment="Right"
+                                                   Foreground="{StaticResource TextQuiet}" FontSize="9" FontWeight="Bold" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+
+            <Grid x:Name="EvidenceExplorerPage" Margin="34,28">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsChecked, ElementName=ExplorerNavButton}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <StackPanel>
+                    <TextBlock Text="NORMALIZED CASE EVIDENCE" Style="{StaticResource EyebrowStyle}" />
+                    <TextBlock Text="Evidence explorer" Margin="0,4,0,0" Style="{StaticResource PageTitleStyle}" />
+                    <TextBlock Text="Search every normalized field or scope the query to one module, source or record kind."
+                               Margin="0,6,0,0" Style="{StaticResource MutedTextStyle}" />
+                </StackPanel>
+                <Grid Grid.Row="1" Margin="0,24,0,14">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.6*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Margin="0,0,12,0">
+                        <TextBlock Text="Search evidence" Foreground="{StaticResource TextSecondary}" />
+                        <TextBox x:Name="EvidenceSearchTextBox" Margin="0,7,0,0"
+                                 TextChanged="EvidenceSearchTextBox_OnTextChanged" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="Module / source scope" Foreground="{StaticResource TextSecondary}" />
+                        <TextBox x:Name="EvidenceModuleScopeTextBox" Margin="0,7,0,0"
+                                 ToolTip="Examples: bam, prefetch, devices, file.metadata"
+                                 TextChanged="EvidenceSearchTextBox_OnTextChanged" />
+                    </StackPanel>
+                </Grid>
+                <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
+                    <ListBox ItemsSource="{Binding EvidenceSearchResults}" Padding="16,12"
+                             Background="Transparent" BorderThickness="0"
+                             FontFamily="Cascadia Mono, Consolas" FontSize="12" />
                 </Border>
             </Grid>
 
