@@ -26,13 +26,18 @@ jobs:
           cache-dependency-path: "**/*.csproj"
 
       - name: Restore
-        run: dotnet restore .\DbdrPcCheck.slnx
+        run: dotnet restore .\DbdrPcCheck.slnx --runtime win-x64
 
       - name: Build
-        run: dotnet build .\DbdrPcCheck.slnx --configuration Release --no-restore
+        run: dotnet build .\DbdrPcCheck.slnx --configuration Release --runtime win-x64 --no-restore
 
       - name: Test
-        run: dotnet test .\DbdrPcCheck.slnx --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
+        run: >-
+          dotnet test .\DbdrPcCheck.slnx
+          --configuration Release
+          --runtime win-x64
+          --no-build
+          --logger "trx;LogFileName=test-results.trx"
 
       - name: Publish single-file development build
         run: >-
