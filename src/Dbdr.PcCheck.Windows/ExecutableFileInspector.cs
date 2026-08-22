@@ -44,10 +44,16 @@ public interface IExecutableFileInspector
     Task<ExecutableFileEvidence> InspectAsync(string path, CancellationToken cancellationToken);
 }
 
-public sealed class ExecutableFileInspector(IYaraFileScanner? yaraScanner = null) : IExecutableFileInspector
+public sealed class ExecutableFileInspector : IExecutableFileInspector
 {
     private readonly Dictionary<string, Task<ExecutableFileEvidence>> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _cacheGate = new();
+    private readonly IYaraFileScanner? _yaraScanner;
+
+    public ExecutableFileInspector(IYaraFileScanner? yaraScanner = null)
+    {
+        _yaraScanner = yaraScanner;
+    }
 
     public Task<ExecutableFileEvidence> InspectAsync(string path, CancellationToken cancellationToken)
     {
@@ -58,7 +64,7 @@ public sealed class ExecutableFileInspector(IYaraFileScanner? yaraScanner = null
                 return cached;
             }
 
-            var inspection = InspectCoreAsync(path, cancellationToken);
+            var inspection = InspectCoreAsync(path, _yaraScanner, cancellationToken);
             _cache[path] = inspection;
             return inspection;
         }
@@ -66,6 +72,7 @@ public sealed class ExecutableFileInspector(IYaraFileScanner? yaraScanner = null
 
     private static async Task<ExecutableFileEvidence> InspectCoreAsync(
         string path,
+        IYaraFileScanner? yaraScanner,
         CancellationToken cancellationToken)
     {
         try
