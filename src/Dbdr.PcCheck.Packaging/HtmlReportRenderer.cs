@@ -203,9 +203,13 @@ public static class HtmlReportRenderer
 
     private static void RenderExecutionHistory(StringBuilder builder, CollectionRunResult result)
     {
-        var kinds = new[] { "execution.bam", "execution.prefetch", "event.service_install", "event.code_integrity" };
+        var kinds = new[]
+        {
+            "execution.bam", "execution.prefetch", "execution.amcache", "event.service_install",
+            "event.code_integrity", "event.application_crash", "event.powershell_engine",
+        };
         var records = result.Records.Where(record => kinds.Contains(record.Kind, StringComparer.Ordinal)).ToArray();
-        builder.Append("<h2>Execution and integrity history</h2><details open><summary>Time-bounded records <span class=\"count\">(")
+        builder.Append("<h2>Execution, crash and integrity metadata</h2><details open><summary>Selected records <span class=\"count\">(")
             .Append(records.Length.ToString(CultureInfo.InvariantCulture)).Append(")</span></summary>");
         if (records.Length == 0)
         {
@@ -380,8 +384,11 @@ public static class HtmlReportRenderer
         "process.snapshot" => $"Process {Get(record, "name")} (PID {Get(record, "processId")})",
         "execution.bam" => $"BAM entry for {Get(record, "executablePath")}",
         "execution.prefetch" => $"Prefetch metadata for {Get(record, "prefetchFile")}",
+        "execution.amcache" => $"Amcache inventory entry for {Get(record, "executablePath") ?? Get(record, "fileName")}",
         "event.service_install" => $"Service installation: {Get(record, "serviceName")}",
         "event.code_integrity" => $"Code Integrity event {Get(record, "eventId")}",
+        "event.application_crash" => $"Application crash: {Get(record, "applicationName")}",
+        "event.powershell_engine" => $"PowerShell {Get(record, "lifecycle")} event",
         "persistence.scheduled_task" => $"Scheduled task {Get(record, "taskPath")}",
         _ => string.Join(", ", record.Fields.Take(3).Select(field => $"{field.Key}={field.Value}")),
     };
@@ -390,8 +397,11 @@ public static class HtmlReportRenderer
     {
         "execution.bam" => Get(record, "executablePath"),
         "execution.prefetch" => Get(record, "prefetchFile"),
+        "execution.amcache" => Get(record, "executablePath") ?? Get(record, "fileName"),
         "event.service_install" => $"{Get(record, "serviceName")} · {Get(record, "imagePath")}",
         "event.code_integrity" => $"Event {Get(record, "eventId")}",
+        "event.application_crash" => $"{Get(record, "applicationName")} · {Get(record, "applicationPath")}",
+        "event.powershell_engine" => $"{Get(record, "lifecycle")} · Event {Get(record, "eventId")}",
         _ => null,
     };
 

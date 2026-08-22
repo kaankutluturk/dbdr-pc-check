@@ -1,6 +1,6 @@
-# Evidence schema 0.3.0
+# Evidence schema 0.4.0
 
-`case.json` contains `evidenceSchemaVersion: "0.3.0"` and `analysisProfileVersion: "0.3.0"`.
+`case.json` contains `evidenceSchemaVersion: "0.4.0"` and `analysisProfileVersion: "0.3.0"`.
 
 | Entry | Purpose |
 | --- | --- |
@@ -61,7 +61,15 @@ Findings are deterministic summaries of collected evidence and collection failur
 
 The schema never stores YARA match bytes, offsets, custom rule contents or a copy of the scanned file. Entropy and YARA results are observations. The analysis profile creates a neutral review item for a YARA match or for the correlation of high entropy with a non-valid signature; neither is a verdict.
 
-## v0.3.0 record kinds
+## Extended forensic metadata
+
+The opt-in extended source group adds three record kinds:
+
+- `execution.amcache`: current executable application inventory. Fields can include `fileName`, redacted `executablePath`, publisher/product/version data, binary type, size and `linkDate`. `sourceTimestampUtc` is null; `linkDate` is labeled file metadata and is not an execution time. Collection is capped at 5,000 executable records.
+- `event.application_crash`: time-bounded Application Error event 1000 metadata. Fields can include application/fault-module name and version, exception code and redacted application/module paths. Message bodies, report identifiers and dumps are absent.
+- `event.powershell_engine`: time-bounded Windows PowerShell event 400, 403 or 600 metadata. Fields contain event/provider identifiers, level and a normalized lifecycle value. Event payloads, commands, scripts, script blocks, host arguments and user identities are absent.
+
+## v0.4.0 record kinds
 
 - `system.snapshot`
 - `process.snapshot`
@@ -70,8 +78,11 @@ The schema never stores YARA match bytes, offsets, custom rule contents or a cop
 - `file.metadata`
 - `execution.bam`
 - `execution.prefetch`
+- `execution.amcache`
 - `event.service_install`
 - `event.code_integrity`
+- `event.application_crash`
+- `event.powershell_engine`
 - `persistence.run_key`
 - `persistence.service`
 - `persistence.driver`

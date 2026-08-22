@@ -28,8 +28,11 @@ The process snapshot is cached before slower module/file inspection. This reduce
 ## Source-specific limitations
 
 - **BAM:** layout and retention vary by Windows version and configuration. A missing key or entry is not proof of absence.
-- **Prefetch:** v0.3.0 records file metadata only. File last-write time is not treated as a fully parsed execution timestamp.
+- **Prefetch:** v0.4.0 records file metadata only. File last-write time is not treated as a fully parsed execution timestamp.
 - **Event Log:** channels can be disabled, cleared, inaccessible or truncated. The collector caps inspection per configured query and reports coverage.
+- **Amcache:** the live inventory is incomplete, version-dependent and not an execution log. A file entry, link date or absent entry does not prove execution, account ownership, installation time or evasion. The collector limits output to executable file types and reports its 5,000-record cap.
+- **Application crashes:** Application Error event fields vary with Windows/provider versions. A crash can be benign, and the absence of a crash event can reflect retention or channel access. Dump content is not collected.
+- **PowerShell lifecycle:** events 400, 403 and 600 show engine/provider activity, not the command or actor. Legitimate software frequently hosts PowerShell, and payload exclusion intentionally prevents command reconstruction.
 - **Scheduled tasks:** command arguments and principals are excluded for privacy, so the record is intentionally incomplete.
 - **Devices:** only non-unique model identifiers are retained. VID/PID or VEN/DEV values identify a model family, not a particular device or DMA behavior.
 - **Module lists:** file-backed modules do not establish the absence of non-file-backed, kernel-level or external manipulation.
@@ -41,6 +44,7 @@ The process snapshot is cached before slower module/file inspection. This reduce
 
 - A staff member requests collection without a valid case or consent.
 - A broad source exposes unrelated personal data.
+- A reviewer infers account ownership or a cheat-site subscription from an application name, path or timestamp without corroboration.
 - A malicious fork impersonates an official collector.
 - A reviewer treats a weak observation, model identifier, missing artifact or source failure as conclusive.
 - A local attacker tampers with evidence before packaging.
