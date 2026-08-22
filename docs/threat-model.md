@@ -28,12 +28,14 @@ The process snapshot is cached before slower module/file inspection. This reduce
 ## Source-specific limitations
 
 - **BAM:** layout and retention vary by Windows version and configuration. A missing key or entry is not proof of absence.
-- **Prefetch:** v0.2.0 records file metadata only. File last-write time is not treated as a fully parsed execution timestamp.
+- **Prefetch:** v0.3.0 records file metadata only. File last-write time is not treated as a fully parsed execution timestamp.
 - **Event Log:** channels can be disabled, cleared, inaccessible or truncated. The collector caps inspection per configured query and reports coverage.
 - **Scheduled tasks:** command arguments and principals are excluded for privacy, so the record is intentionally incomplete.
 - **Devices:** only non-unique model identifiers are retained. VID/PID or VEN/DEV values identify a model family, not a particular device or DMA behavior.
 - **Module lists:** file-backed modules do not establish the absence of non-file-backed, kernel-level or external manipulation.
 - **Hashes/signatures:** unsigned, unknown or inaccessible files are weak observations and require corroboration.
+- **Entropy:** packed, compressed and encrypted legitimate software can have high entropy. The analyzer correlates high entropy with a non-valid signature but still produces only a review item.
+- **YARA:** rule quality, scope and version directly control false positives and false negatives. The suite records ruleset hashes and rule identifiers so a reviewer can reproduce and challenge a match. A match never creates a verdict.
 
 ## Abuse cases
 
@@ -43,6 +45,7 @@ The process snapshot is cached before slower module/file inspection. This reduce
 - A reviewer treats a weak observation, model identifier, missing artifact or source failure as conclusive.
 - A local attacker tampers with evidence before packaging.
 - A build workflow, rule pack or signing secret is compromised.
+- A custom YARA rule is excessively broad, resource-intensive or misleading.
 - A future backend retains evidence indefinitely or exposes it to unauthorized staff.
 
 Mitigations include visible authorization, operator-selectable modules, strict exclusions, source-specific coverage, path/device redaction, deterministic neutral findings, signed releases, reproducible CI, bundle manifests, access control and mandatory human review.

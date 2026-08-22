@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: [main]
+    branches: [main, "feat/**"]
   pull_request:
   workflow_dispatch:
 
@@ -43,6 +43,15 @@ jobs:
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
           --output .\artifacts\win-x64
+
+      - name: Verify portable single-file output
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem .\artifacts\win-x64 -File)
+          if ($files.Count -ne 1 -or $files[0].Name -ne "DBDR.PcCheck.exe") {
+            $files | Select-Object Name, Length | Format-Table
+            throw "Portable publish must contain exactly one DBDR.PcCheck.exe file."
+          }
 
       - name: Upload development build
         uses: actions/upload-artifact@v7

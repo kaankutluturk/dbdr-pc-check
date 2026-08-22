@@ -22,6 +22,12 @@ public sealed class EvidenceAnalyzerTests
                     ["modulePath"] = @"%USERPROFILE%\AppData\Local\module.dll",
                     ["identityStableDuringInspection"] = "false",
                     ["fileInspectionError"] = null,
+                    ["entropyClassification"] = "high",
+                    ["entropyBitsPerByte"] = "7.9000",
+                    ["authenticodeStatus"] = "unsigned",
+                    ["yaraStatus"] = "matched",
+                    ["yaraMatchCount"] = "1",
+                    ["yaraMatches"] = "baseline:DBDR_Test_Rule",
                 }),
             new(
                 "execution-history",
@@ -48,6 +54,10 @@ public sealed class EvidenceAnalyzerTests
             && finding.Title.Contains("user-writable", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(findings, finding => finding.Disposition == FindingDisposition.NeedsReview
             && finding.Title.Contains("changed", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(findings, finding => finding.Disposition == FindingDisposition.NeedsReview
+            && finding.Title.Contains("YARA", StringComparison.Ordinal));
+        Assert.Contains(findings, finding => finding.Disposition == FindingDisposition.NeedsReview
+            && finding.Title.Contains("entropy", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(findings, finding => finding.Disposition == FindingDisposition.CoverageGap
             && finding.Title.Contains("Test source", StringComparison.Ordinal));
         Assert.DoesNotContain(findings, finding => finding.Title.Contains("cheater", StringComparison.OrdinalIgnoreCase));

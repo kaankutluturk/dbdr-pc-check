@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Security;
 using System.Security.Cryptography;
+using Dbdr.PcCheck.Core;
 
 namespace Dbdr.PcCheck.Windows;
 
@@ -15,7 +16,10 @@ public sealed record ExecutableFileEvidence(
     string? ProductName,
     string? OriginalFileName,
     string? IdentityStableDuringInspection,
-    string? Error)
+    string? Error,
+    string? EntropyBitsPerByte = null,
+    string? EntropyClassification = null,
+    YaraScanEvidence? Yara = null)
 {
     public void AddTo(IDictionary<string, string?> fields)
     {
@@ -29,6 +33,9 @@ public sealed record ExecutableFileEvidence(
         fields["originalFileName"] = OriginalFileName;
         fields["identityStableDuringInspection"] = IdentityStableDuringInspection;
         fields["fileInspectionError"] = Error;
+        fields["entropyBitsPerByte"] = EntropyBitsPerByte;
+        fields["entropyClassification"] = EntropyClassification;
+        (Yara ?? YaraScanEvidence.Disabled).AddTo(fields);
     }
 }
 
@@ -37,7 +44,7 @@ public interface IExecutableFileInspector
     Task<ExecutableFileEvidence> InspectAsync(string path, CancellationToken cancellationToken);
 }
 
-public sealed class ExecutableFileInspector : IExecutableFileInspector
+public sealed class ExecutableFileInspector(IYaraFileScanner? yaraScanner = null) : IExecutableFileInspector
 {
     private readonly Dictionary<string, Task<ExecutableFileEvidence>> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _cacheGate = new();
@@ -75,6 +82,7 @@ public sealed class ExecutableFileInspector : IExecutableFileInspector
             var beforeModifiedUtc = before.LastWriteTimeUtc;
 
             string hash;
+            var entropy = new BinaryEntropy();
             await using (var stream = new FileStream(
                 path,
                 FileMode.Open,
@@ -83,13 +91,24 @@ public sealed class ExecutableFileInspector : IExecutableFileInspector
                 81920,
                 FileOptions.Asynchronous | FileOptions.SequentialScan))
             {
-                hash = Convert.ToHexString(
-                    await SHA256.HashDataAsync(stream, cancellationToken).ConfigureAwait(false));
+                using var incrementalHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+                var buffer = new byte[81920];
+                int bytesRead;
+                while ((bytesRead = await stream.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    incrementalHash.AppendData(buffer, 0, bytesRead);
+                    entropy.Append(buffer.AsSpan(0, bytesRead));
+                }
+
+                hash = Convert.ToHexString(incrementalHash.GetHashAndReset());
             }
 
             cancellationToken.ThrowIfCancellationRequested();
             var version = FileVersionInfo.GetVersionInfo(path);
             var authenticodeStatus = AuthenticodeVerifier.GetStatus(path);
+            var yaraEvidence = yaraScanner is null
+                ? YaraScanEvidence.Disabled
+                : await yaraScanner.ScanAsync(path, cancellationToken).ConfigureAwait(false);
 
             var after = new FileInfo(path);
             after.Refresh();
@@ -108,7 +127,10 @@ public sealed class ExecutableFileInspector : IExecutableFileInspector
                 version.ProductName,
                 version.OriginalFilename,
                 identityStable ? "true" : "false",
-                identityStable ? null : "File identity changed while it was inspected.");
+                identityStable ? null : "File identity changed while it was inspected.",
+                entropy.CalculateBitsPerByte().ToString("F4", CultureInfo.InvariantCulture),
+                BinaryEntropy.Classify(entropy.CalculateBitsPerByte()),
+                yaraEvidence);
         }
         catch (Exception exception) when (exception is IOException
             or UnauthorizedAccessException
