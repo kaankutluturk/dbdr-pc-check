@@ -19,7 +19,7 @@
         <SolidColorBrush x:Key="Warning" Color="#E5B75D" />
         <SolidColorBrush x:Key="TextPrimary" Color="#F5F3F4" />
         <SolidColorBrush x:Key="TextSecondary" Color="#B3ADB0" />
-        <SolidColorBrush x:Key="TextQuiet" Color="#7F797D" />
+        <SolidColorBrush x:Key="TextQuiet" Color="#918A8E" />
 
         <Style TargetType="Window">
             <Setter Property="FontFamily" Value="Segoe UI" />
@@ -28,8 +28,8 @@
         </Style>
 
         <Style TargetType="TextBox">
-            <Setter Property="Height" Value="40" />
-            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="11,0" />
             <Setter Property="Background" Value="{StaticResource PanelRaised}" />
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
             <Setter Property="CaretBrush" Value="{StaticResource Primary}" />
@@ -44,8 +44,11 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
                                 CornerRadius="6">
-                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          VerticalAlignment="Center"
+                                          VerticalContentAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
@@ -64,8 +67,8 @@
         </Style>
 
         <Style TargetType="Button">
-            <Setter Property="Height" Value="40" />
-            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="Padding" Value="16,0" />
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
             <Setter Property="Background" Value="{StaticResource PanelRaised}" />
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
@@ -135,6 +138,12 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <Style x:Key="CompactButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Padding" Value="11,0" />
+            <Setter Property="FontSize" Value="12" />
         </Style>
 
         <Style TargetType="CheckBox">
@@ -236,13 +245,13 @@
             <Setter Property="Background" Value="{StaticResource PanelBackground}" />
             <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="20" />
+            <Setter Property="CornerRadius" Value="7" />
+            <Setter Property="Padding" Value="16" />
         </Style>
 
         <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
-            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontSize" Value="16" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
@@ -254,7 +263,7 @@
 
         <Style x:Key="PageTitleStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
-            <Setter Property="FontSize" Value="30" />
+            <Setter Property="FontSize" Value="26" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
@@ -267,8 +276,8 @@
             <Setter Property="Foreground" Value="{StaticResource TextSecondary}" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Height" Value="46" />
-            <Setter Property="Margin" Value="0,3" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="Margin" Value="0,2" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -292,6 +301,75 @@
                                 <Setter TargetName="Chrome" Property="Background" Value="{StaticResource PrimarySoft}" />
                                 <Setter TargetName="Indicator" Property="Background" Value="{StaticResource Primary}" />
                                 <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CompactExpanderStyle" TargetType="Expander">
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Expander">
+                        <Border Background="{StaticResource PanelBackground}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="7">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <ToggleButton x:Name="HeaderSite"
+                                              Height="40"
+                                              Padding="14,0"
+                                              HorizontalContentAlignment="Stretch"
+                                              Background="Transparent"
+                                              BorderThickness="0"
+                                              Cursor="Hand"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="HeaderChrome"
+                                                    Padding="{TemplateBinding Padding}"
+                                                    Background="{TemplateBinding Background}"
+                                                    CornerRadius="6">
+                                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                                  VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="HeaderChrome" Property="Background" Value="{StaticResource PanelRaised}" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="⌄" Margin="0,-1,9,0"
+                                                   FontSize="19" Foreground="{StaticResource Primary}"
+                                                   VerticalAlignment="Center" />
+                                        <ContentPresenter Grid.Column="1" ContentSource="Header"
+                                                          VerticalAlignment="Center" />
+                                    </Grid>
+                                </ToggleButton>
+                                <ContentPresenter x:Name="ExpandSite" Grid.Row="1"
+                                                  Margin="14,0,14,14"
+                                                  Visibility="Collapsed" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

@@ -27,8 +27,8 @@ public partial class MainWindow : Window
         DataContext = this;
 
         var now = DateTimeOffset.UtcNow;
-        ReviewWindowStartTextBox.Text = FormatUtc(now.AddHours(-2));
-        ReviewWindowEndTextBox.Text = FormatUtc(now);
+        CaseIdTextBox.Text = CreateCaseId(now);
+        SetReviewWindow(now.AddHours(-6), now);
         RefreshModuleCatalog();
         RefreshEvidenceSearch();
     }
@@ -73,12 +73,18 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!ReviewWindowParser.TryParseUtc(ReviewWindowStartTextBox.Text, out var reviewWindowStartUtc)
-            || !ReviewWindowParser.TryParseUtc(ReviewWindowEndTextBox.Text, out var reviewWindowEndUtc))
+        if (!ReviewWindowParser.TryParseUtcParts(
+                ReviewWindowStartDateTextBox.Text,
+                ReviewWindowStartTimeTextBox.Text,
+                out var reviewWindowStartUtc)
+            || !ReviewWindowParser.TryParseUtcParts(
+                ReviewWindowEndDateTextBox.Text,
+                ReviewWindowEndTimeTextBox.Text,
+                out var reviewWindowEndUtc))
         {
             MessageBox.Show(
                 this,
-                "Enter both review timestamps in ISO 8601 format with Z or an explicit UTC offset.",
+                "Enter both UTC dates as YYYY-MM-DD and times as HH:mm using the 24-hour clock.",
                 "Invalid review window",
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
@@ -120,7 +126,7 @@ public partial class MainWindow : Window
             var collectionStartedUtc = DateTimeOffset.UtcNow;
             var version = Assembly.GetExecutingAssembly()
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                .InformationalVersion ?? "0.3.0-development";
+                .InformationalVersion ?? "0.3.1-development";
             var context = new CollectionContext(
                 caseId,
                 reviewWindowStartUtc,
@@ -296,7 +302,28 @@ public partial class MainWindow : Window
         }
     }
 
+    private void CaseIdRefreshButton_OnClick(object sender, RoutedEventArgs e) =>
+        CaseIdTextBox.Text = CreateCaseId(DateTimeOffset.UtcNow);
+
+    private void ReviewWindowPresetButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string hoursText }
+            || !double.TryParse(hoursText, NumberStyles.Number, CultureInfo.InvariantCulture, out var hours))
+        {
+            return;
+        }
+
+        var endUtc = DateTimeOffset.UtcNow;
+        SetReviewWindow(endUtc.AddHours(-hours), endUtc);
+    }
+
+    private void ReviewBoundaryButton_OnClick(object sender, RoutedEventArgs e) =>
+        PrivacyNavButton.IsChecked = true;
+
     private void ModuleSearchTextBox_OnTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) =>
+        RefreshModuleCatalog();
+
+    private void ModuleCatalogFilter_OnChanged(object sender, RoutedEventArgs e) =>
         RefreshModuleCatalog();
 
     private void EvidenceSearchTextBox_OnTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) =>
@@ -305,10 +332,23 @@ public partial class MainWindow : Window
     private void RefreshModuleCatalog()
     {
         var query = ModuleSearchTextBox?.Text;
+        var definitions = EvidenceModuleCatalog.Search(query);
+        if (ShowUnavailableModulesCheckBox?.IsChecked != true)
+        {
+            definitions = definitions
+                .Where(module => module.Availability is ModuleAvailability.Available or ModuleAvailability.Preview)
+                .ToArray();
+        }
+
         VisibleModules.Clear();
-        foreach (var module in EvidenceModuleCatalog.Search(query))
+        foreach (var module in definitions)
         {
             VisibleModules.Add(ModuleCardViewModel.From(module));
+        }
+
+        if (ModuleCatalogSummaryTextBlock is not null)
+        {
+            ModuleCatalogSummaryTextBlock.Text = $"{VisibleModules.Count.ToString(CultureInfo.InvariantCulture)} shown";
         }
     }
 
@@ -375,8 +415,14 @@ public partial class MainWindow : Window
         ActivityCancelButton.IsEnabled = isRunning;
         CollectionProgressBar.IsIndeterminate = isRunning;
         CaseIdTextBox.IsEnabled = !isRunning;
-        ReviewWindowStartTextBox.IsEnabled = !isRunning;
-        ReviewWindowEndTextBox.IsEnabled = !isRunning;
+        CaseIdRefreshButton.IsEnabled = !isRunning;
+        ReviewWindowStartDateTextBox.IsEnabled = !isRunning;
+        ReviewWindowStartTimeTextBox.IsEnabled = !isRunning;
+        ReviewWindowEndDateTextBox.IsEnabled = !isRunning;
+        ReviewWindowEndTimeTextBox.IsEnabled = !isRunning;
+        LastHourButton.IsEnabled = !isRunning;
+        LastSixHoursButton.IsEnabled = !isRunning;
+        LastDayButton.IsEnabled = !isRunning;
         ConsentCheckBox.IsEnabled = !isRunning;
         ExecutionHistoryCheckBox.IsEnabled = !isRunning;
         FileEnrichmentCheckBox.IsEnabled = !isRunning;
@@ -386,7 +432,25 @@ public partial class MainWindow : Window
         YaraScanCheckBox.IsEnabled = !isRunning;
         YaraRulesPathTextBox.IsEnabled = !isRunning;
         YaraRulesBrowseButton.IsEnabled = !isRunning;
+        AdvancedTriageExpander.IsEnabled = !isRunning;
     }
+
+    private void SetReviewWindow(DateTimeOffset startUtc, DateTimeOffset endUtc)
+    {
+        ReviewWindowStartDateTextBox.Text = FormatUtcDate(startUtc);
+        ReviewWindowStartTimeTextBox.Text = FormatUtcTime(startUtc);
+        ReviewWindowEndDateTextBox.Text = FormatUtcDate(endUtc);
+        ReviewWindowEndTimeTextBox.Text = FormatUtcTime(endUtc);
+    }
+
+    private static string CreateCaseId(DateTimeOffset value) =>
+        $"DBDR-{value.ToUniversalTime():yyyyMMdd-HHmm}-{Guid.NewGuid():N}"[..24].ToUpperInvariant();
+
+    private static string FormatUtcDate(DateTimeOffset value) =>
+        value.ToUniversalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    private static string FormatUtcTime(DateTimeOffset value) =>
+        value.ToUniversalTime().ToString("HH:mm", CultureInfo.InvariantCulture);
 
     private static string FormatUtc(DateTimeOffset value) =>
         value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);

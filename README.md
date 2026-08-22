@@ -2,7 +2,7 @@
 
 A consent-based, read-only Windows evidence suite for consistent and reviewable DBDR PC checks.
 
-> **Development status:** v0.3.0 adds a portable module catalog, scoped evidence search, Shannon entropy and bounded YARA file triage. It is not a cheat detector and must not be used as the sole basis for a moderation decision.
+> **Development status:** v0.3.1 refines the compact operator workflow and DPI-safe interface introduced alongside the v0.3 module catalog, scoped evidence search, Shannon entropy and bounded YARA file triage. It is not a cheat detector and must not be used as the sole basis for a moderation decision.
 
 ## Product shape
 
