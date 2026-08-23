@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "dbdr-detection-fixture/1",
+  "name": "Signed high-entropy binary is not elevated alone",
+  "description": "High whole-file entropy with a valid signature remains below the review threshold when no stronger PE or YARA signal exists.",
+  "reviewWindowStartUtc": "2026-08-23T08:00:00Z",
+  "reviewWindowEndUtc": "2026-08-23T10:00:00Z",
+  "modules": [
+    {
+      "module": "process-files",
+      "completed": true,
+      "records": [
+        {
+          "kind": "file.metadata",
+          "source": "synthetic-validation",
+          "fields": {
+            "executablePath": "%USERPROFILE%\\AppData\\Local\\Vendor\\packed-signed.exe",
+            "authenticodeStatus": "valid",
+            "entropyClassification": "high",
+            "entropyBitsPerByte": "7.9400",
+            "peStatus": "valid",
+            "yaraStatus": "clean",
+            "yaraMatchCount": "0"
+          }
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "expectedFindings": []
+}

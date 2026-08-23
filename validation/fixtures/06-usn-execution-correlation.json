@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "dbdr-detection-fixture/1",
+  "name": "Created-deleted executable correlation",
+  "description": "A retained same-file-reference create/delete sequence plus exact Prefetch filename produces both the source and corroborated review leads.",
+  "reviewWindowStartUtc": "2026-08-23T08:00:00Z",
+  "reviewWindowEndUtc": "2026-08-23T10:00:00Z",
+  "modules": [
+    {
+      "module": "execution-history",
+      "completed": true,
+      "records": [
+        {
+          "kind": "execution.usn_executable_change",
+          "source": "synthetic-validation",
+          "sourceTimestampUtc": "2026-08-23T09:20:00Z",
+          "fields": {
+            "fileName": "temporary-loader.exe",
+            "reasons": "file-create,file-delete",
+            "sequence": "created-and-deleted"
+          }
+        },
+        {
+          "kind": "execution.prefetch",
+          "source": "synthetic-validation",
+          "sourceTimestampUtc": "2026-08-23T09:19:00Z",
+          "fields": {
+            "executableName": "TEMPORARY-LOADER.EXE"
+          }
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "expectedFindings": [
+    {
+      "disposition": "needsReview",
+      "title": "Executable was created and deleted inside retained USN history",
+      "module": "execution-history",
+      "recordKind": "execution.usn_executable_change"
+    },
+    {
+      "disposition": "needsReview",
+      "title": "Created-and-deleted executable corroborated by an execution artifact",
+      "module": "correlation",
+      "recordKind": "execution.usn_executable_change"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "dbdr-detection-fixture/1",
+  "name": "Module failure stays explicit",
+  "description": "Incomplete collection, warnings and errors are three separately visible coverage gaps rather than an implicit clean result.",
+  "reviewWindowStartUtc": "2026-08-23T08:00:00Z",
+  "reviewWindowEndUtc": "2026-08-23T10:00:00Z",
+  "modules": [
+    {
+      "module": "execution-history",
+      "completed": false,
+      "records": [],
+      "warnings": ["Synthetic source cap reached"],
+      "errors": ["Synthetic source access denied"]
+    }
+  ],
+  "expectedFindings": [
+    {
+      "disposition": "coverageGap",
+      "title": "execution-history collection incomplete",
+      "module": "execution-history"
+    },
+    {
+      "disposition": "coverageGap",
+      "title": "execution-history coverage warning",
+      "module": "execution-history"
+    },
+    {
+      "disposition": "coverageGap",
+      "title": "execution-history error",
+      "module": "execution-history"
+    }
+  ]
+}

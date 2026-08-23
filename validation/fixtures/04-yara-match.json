@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "dbdr-detection-fixture/1",
+  "name": "YARA match remains a review lead",
+  "description": "A bounded rule match produces one neutral review item even when the referenced executable is validly signed.",
+  "reviewWindowStartUtc": "2026-08-23T08:00:00Z",
+  "reviewWindowEndUtc": "2026-08-23T10:00:00Z",
+  "modules": [
+    {
+      "module": "game-modules",
+      "completed": true,
+      "records": [
+        {
+          "kind": "process.module",
+          "source": "synthetic-validation",
+          "fields": {
+            "modulePath": "%PROGRAMFILES%\\Vendor\\signed-module.dll",
+            "authenticodeStatus": "valid",
+            "entropyClassification": "normal",
+            "peStatus": "valid",
+            "yaraStatus": "matched",
+            "yaraMatchCount": "1",
+            "yaraMatches": "baseline:DBDR_Validation_Test"
+          }
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "expectedFindings": [
+    {
+      "disposition": "needsReview",
+      "title": "YARA rule match on a referenced file",
+      "module": "game-modules",
+      "recordKind": "process.module"
+    }
+  ]
+}

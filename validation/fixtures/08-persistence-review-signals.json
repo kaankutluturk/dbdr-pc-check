@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "dbdr-detection-fixture/1",
+  "name": "Persistence review signals",
+  "description": "Bounded scheduled-task, IFEO, autorun, Startup and WMI metadata each exercise their neutral persistence review contract.",
+  "reviewWindowStartUtc": "2026-08-23T08:00:00Z",
+  "reviewWindowEndUtc": "2026-08-23T10:00:00Z",
+  "modules": [
+    {
+      "module": "persistence",
+      "completed": true,
+      "records": [
+        {
+          "kind": "persistence.scheduled_task",
+          "source": "synthetic-validation",
+          "fields": {
+            "taskPath": "\\Validation\\UserTask",
+            "command": "%USERPROFILE%\\AppData\\Local\\task.exe"
+          }
+        },
+        {
+          "kind": "persistence.ifeo_debugger",
+          "source": "synthetic-validation",
+          "fields": {
+            "imageName": "game.exe",
+            "debugger": "<redacted-command>"
+          }
+        },
+        {
+          "kind": "persistence.registry_location",
+          "source": "synthetic-validation",
+          "fields": {
+            "locationType": "run",
+            "entryName": "ValidationEntry",
+            "value": "%USERPROFILE%\\AppData\\Local\\autorun.exe"
+          }
+        },
+        {
+          "kind": "persistence.startup_file",
+          "source": "synthetic-validation",
+          "sourceTimestampUtc": "2026-08-23T09:10:00Z",
+          "fields": {
+            "path": "%USERPROFILE%\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\entry.lnk"
+          }
+        },
+        {
+          "kind": "persistence.wmi_consumer",
+          "source": "synthetic-validation",
+          "fields": {
+            "name": "ValidationConsumer",
+            "consumerClass": "CommandLineEventConsumer"
+          }
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "expectedFindings": [
+    {
+      "disposition": "needsReview",
+      "title": "Scheduled task launches from a user-writable location",
+      "module": "persistence",
+      "recordKind": "persistence.scheduled_task"
+    },
+    {
+      "disposition": "needsReview",
+      "title": "Image File Execution Options debugger persistence",
+      "module": "persistence",
+      "recordKind": "persistence.ifeo_debugger"
+    },
+    {
+      "disposition": "needsReview",
+      "title": "Autorun registry location references a user-writable path",
+      "module": "persistence",
+      "recordKind": "persistence.registry_location"
+    },
+    {
+      "disposition": "needsReview",
+      "title": "Startup-folder entry modified in the review window",
+      "module": "persistence",
+      "recordKind": "persistence.startup_file"
+    },
+    {
+      "disposition": "needsReview",
+      "title": "Executable WMI permanent event consumer present",
+      "module": "persistence",
+      "recordKind": "persistence.wmi_consumer"
+    }
+  ]
+}

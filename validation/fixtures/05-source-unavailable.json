@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "dbdr-detection-fixture/1",
+  "name": "Unavailable source is a coverage gap",
+  "description": "An inaccessible source never becomes an implicit clean result and is emitted as an explicit coverage gap.",
+  "reviewWindowStartUtc": "2026-08-23T08:00:00Z",
+  "reviewWindowEndUtc": "2026-08-23T10:00:00Z",
+  "modules": [
+    {
+      "module": "execution-history",
+      "completed": true,
+      "records": [
+        {
+          "kind": "coverage.source",
+          "source": "synthetic-validation",
+          "fields": {
+            "sourceName": "Prefetch",
+            "status": "unavailable",
+            "detail": "Access denied by synthetic fixture"
+          }
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "expectedFindings": [
+    {
+      "disposition": "coverageGap",
+      "title": "Prefetch unavailable",
+      "module": "execution-history",
+      "recordKind": "coverage.source"
+    }
+  ]
+}

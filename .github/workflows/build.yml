@@ -34,6 +34,24 @@ jobs:
       - name: Test
         run: dotnet test .\DbdrPcCheck.slnx --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
 
+      - name: Validate detection profile
+        run: >-
+          dotnet run --project .\src\Dbdr.PcCheck.Validation\Dbdr.PcCheck.Validation.csproj
+          --configuration Release
+          --no-build
+          --
+          .\validation\fixtures
+          .\artifacts\detection-validation
+
+      - name: Upload detection validation report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dbdr-detection-validation-${{ github.sha }}
+          path: artifacts/detection-validation/*
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Publish single-file development build
         run: >-
           dotnet publish .\src\Dbdr.PcCheck.App\Dbdr.PcCheck.App.csproj

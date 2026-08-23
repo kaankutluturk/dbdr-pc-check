@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "dbdr-detection-fixture/1",
+  "name": "Code Integrity selection and context filter",
+  "description": "A selected validation event creates a review lead while correlated signature-information context is deliberately ignored.",
+  "reviewWindowStartUtc": "2026-08-23T08:00:00Z",
+  "reviewWindowEndUtc": "2026-08-23T10:00:00Z",
+  "modules": [
+    {
+      "module": "execution-history",
+      "completed": true,
+      "records": [
+        {
+          "kind": "event.code_integrity",
+          "source": "synthetic-validation",
+          "sourceTimestampUtc": "2026-08-23T09:00:00Z",
+          "fields": {
+            "eventId": "3033",
+            "classification": "image-validation-failure",
+            "filePath": "%SYSTEMROOT%\\System32\\validation.dll"
+          }
+        },
+        {
+          "kind": "event.code_integrity",
+          "source": "synthetic-validation",
+          "sourceTimestampUtc": "2026-08-23T09:00:01Z",
+          "fields": {
+            "eventId": "3089",
+            "classification": "correlated-signature-information",
+            "filePath": "%SYSTEMROOT%\\System32\\validation.dll"
+          }
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "expectedFindings": [
+    {
+      "disposition": "needsReview",
+      "title": "Code Integrity event in the review window",
+      "module": "execution-history",
+      "recordKind": "event.code_integrity"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "dbdr-detection-fixture/1",
+  "name": "Unsigned high-entropy recent user binary",
+  "description": "Unsigned status is informational while the independent entropy and authorized-window correlation create neutral review leads.",
+  "reviewWindowStartUtc": "2026-08-23T08:00:00Z",
+  "reviewWindowEndUtc": "2026-08-23T10:00:00Z",
+  "modules": [
+    {
+      "module": "process-files",
+      "completed": true,
+      "records": [
+        {
+          "kind": "file.metadata",
+          "source": "synthetic-validation",
+          "fields": {
+            "executablePath": "%USERPROFILE%\\Downloads\\review-me.exe",
+            "authenticodeStatus": "unsigned",
+            "entropyClassification": "high",
+            "entropyBitsPerByte": "7.9100",
+            "fileCreatedUtc": "2026-08-23T09:30:00Z",
+            "peStatus": "valid",
+            "yaraStatus": "clean",
+            "yaraMatchCount": "0"
+          }
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "expectedFindings": [
+    {
+      "disposition": "informational",
+      "title": "Unsigned referenced executable",
+      "module": "process-files",
+      "recordKind": "file.metadata"
+    },
+    {
+      "disposition": "needsReview",
+      "title": "High-entropy file without a valid signature",
+      "module": "process-files",
+      "recordKind": "file.metadata"
+    },
+    {
+      "disposition": "needsReview",
+      "title": "Recently created unsigned executable in a user-writable path",
+      "module": "process-files",
+      "recordKind": "file.metadata"
+    }
+  ]
+}

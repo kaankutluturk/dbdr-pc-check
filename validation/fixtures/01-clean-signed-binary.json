@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "dbdr-detection-fixture/1",
+  "name": "Clean signed system binary",
+  "description": "A normally structured, validly signed executable outside user-writable locations must not create a finding.",
+  "reviewWindowStartUtc": "2026-08-23T08:00:00Z",
+  "reviewWindowEndUtc": "2026-08-23T10:00:00Z",
+  "modules": [
+    {
+      "module": "process-files",
+      "completed": true,
+      "records": [
+        {
+          "kind": "file.metadata",
+          "source": "synthetic-validation",
+          "fields": {
+            "executablePath": "%PROGRAMFILES%\\Vendor\\signed-app.exe",
+            "authenticodeStatus": "valid",
+            "entropyClassification": "normal",
+            "entropyBitsPerByte": "6.1000",
+            "peStatus": "valid",
+            "yaraStatus": "clean",
+            "yaraMatchCount": "0"
+          }
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "expectedFindings": []
+}

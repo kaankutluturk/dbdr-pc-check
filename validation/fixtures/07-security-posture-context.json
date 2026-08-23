@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "dbdr-detection-fixture/1",
+  "name": "Security posture remains informational",
+  "description": "Disabled protection states provide context but do not cross the needs-review threshold by themselves.",
+  "reviewWindowStartUtc": "2026-08-23T08:00:00Z",
+  "reviewWindowEndUtc": "2026-08-23T10:00:00Z",
+  "modules": [
+    {
+      "module": "system",
+      "completed": true,
+      "records": [
+        {
+          "kind": "system.snapshot",
+          "source": "synthetic-validation",
+          "fields": {
+            "securityServicesConfigured": "memory-integrity",
+            "securityServicesRunning": "",
+            "vulnerableDriverBlocklistRegistryEnabled": "false",
+            "secureBootEnabled": "false"
+          }
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "expectedFindings": [
+    {
+      "disposition": "informational",
+      "title": "Memory integrity configured but not running",
+      "module": "system",
+      "recordKind": "system.snapshot"
+    },
+    {
+      "disposition": "informational",
+      "title": "Vulnerable driver blocklist configured off",
+      "module": "system",
+      "recordKind": "system.snapshot"
+    },
+    {
+      "disposition": "informational",
+      "title": "Secure Boot reported off",
+      "module": "system",
+      "recordKind": "system.snapshot"
+    }
+  ]
+}
