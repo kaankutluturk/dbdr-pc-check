@@ -2,7 +2,7 @@
 
 A consent-based, read-only Windows evidence suite for consistent and reviewable DBDR PC checks.
 
-> **Development status:** v0.4.0 adds an explicit opt-in extended-forensics group for capped Amcache executable inventory, Application Error crash metadata and PowerShell engine/provider lifecycle metadata. It retains the compact DPI-safe interface, scoped evidence search, Shannon entropy and bounded YARA file triage. It is not a cheat detector and must not be used as the sole basis for a moderation decision.
+> **Development status:** v0.5.0 hardens executable and driver triage with a bounded hostile-input PE parser, section entropy, writable+executable-section detection, import-risk clusters, expanded embedded YARA review rules, persistence-binary inspection, Windows code-integrity/security-posture context and an actual packaged-app launch smoke test. It is not a cheat detector and must not be used as the sole basis for a moderation decision.
 
 ## Product shape
 
@@ -17,24 +17,25 @@ The desktop application provides one guided workflow instead of a folder of unre
 
 Each collector is read-only, independently cancellable and failure-isolated. A failed source does not erase successful evidence from another source.
 
-## v0.4.0 modules
+## v0.5.0 modules
 
 | Module | Current evidence | Important limitation |
 | --- | --- | --- |
 | Live DBD | Process snapshot, DBD file-backed modules, parent/session identifiers | No process-memory inspection; inaccessible module lists are coverage gaps |
-| Executable enrichment | SHA-256, Authenticode, file/version metadata, Shannon entropy, bounded YARA matches and basic identity-stability check | High entropy, unsigned status and rule matches are review leads, not proof |
-| Execution timeline | Time-bounded BAM records, Prefetch file metadata, service-install events and Code Integrity warnings/errors | Prefetch last-write time is not represented as a parsed execution time |
-| Extended forensic metadata | Opt-in capped Amcache executable inventory, time-bounded Application Error crash events and PowerShell engine/provider lifecycle events | Amcache is current inventory, not proof of execution; event messages, commands, scripts and dumps are excluded |
-| Persistence | Run keys, services, system drivers | Current state does not prove when an entry was created |
-| Scheduled tasks | Task path, executable command, enabled/hidden state and trigger classes | Arguments and task principals are intentionally excluded |
+| Executable enrichment | SHA-256, Authenticode, file/version metadata, whole-file and bounded per-section entropy, PE headers/sections/import clusters/overlay metadata, bounded YARA matches and identity-stability check | Unsigned status, packer-like sections, imports and rule matches are observations; multi-signal review is still not proof |
+| Execution timeline | Time-bounded BAM records, parsed Prefetch run times, service-install events and Code Integrity warnings/errors | Prefetch parsing is size-bounded and excludes referenced-file and volume lists from evidence |
+| Extended forensic metadata | Opt-in capped Amcache executable inventory, time-bounded Application Error/PowerShell lifecycle events and bounded NTFS executable-change history | Amcache is current inventory, not proof of execution; USN parent paths/file references and event messages, commands, scripts and dumps are excluded |
+| Persistence | Run/Winlogon/AppInit/boot/LSA/IFEO locations, Startup/WMI/service/driver state, loaded-driver image paths, plus hash/signature/PE/YARA inspection of resolved executable references | Kernel addresses and sensitive command/script contents are excluded; protected or capped enumeration is explicit |
+| Scheduled tasks | Task path, executable command, enabled/hidden state and trigger classes plus bounded enrichment of resolved executable commands | Arguments and task principals are intentionally excluded; definitions and enrichment are capped |
 | Devices | PnP class, name, manufacturer, service, status and non-unique VID/PID or VEN/DEV model ID | Unique instance IDs/serials are excluded; a model ID does not prove DMA use |
-| Findings | Neutral `needsReview` and `coverageGap` observations | No finding is an automated moderation verdict |
+| System posture | Secure Boot, VBS/memory-integrity, App Control and vulnerable-driver-blocklist state exposed by documented Windows sources | A protection being off is context, not evidence of cheating |
+| Findings | Neutral `informational`, `needsReview` and `coverageGap` observations | No finding is an automated moderation verdict |
 | Module catalog | Searchable status and boundaries for the full requested suite | Planned and privacy-gated entries are labeled; they are not fake enabled tools |
 | Evidence explorer | Full-field search with an optional module/source/kind scope | Searches normalized records from the current in-memory run only |
 
 The suite does **not** upload evidence. It does not inspect browser history or downloads, chats, credentials, clipboard contents, screenshots, personal documents, PowerShell commands/scripts/history, crash dumps, raw process or kernel memory, or memory-derived strings. It does not terminate processes, modify services, install drivers, attach a debugger or clear logs.
 
-See [PRIVACY.md](PRIVACY.md), [the module roadmap](docs/module-roadmap.md), [evidence schema](docs/evidence-schema.md), [source matrix](docs/source-matrix.md), [architecture](docs/architecture.md) and [threat model](docs/threat-model.md).
+See [PRIVACY.md](PRIVACY.md), [the module roadmap](docs/module-roadmap.md), [evidence schema](docs/evidence-schema.md), [source matrix](docs/source-matrix.md), [architecture](docs/architecture.md), [release signing](docs/signing.md) and [threat model](docs/threat-model.md).
 
 ## Build
 
@@ -70,4 +71,4 @@ Reviewers must distinguish:
 
 ## Module roadmap
 
-The requested WinPrefetch, Autoruns, String Explorer, USB, saved-file, PowerShell, path, MFT, kernel dump, journal, crash, browser, BAM, Amcache and SRUM capabilities are tracked individually in the in-app catalog and [module roadmap](docs/module-roadmap.md). The v0.4.0 PowerShell, crash and Amcache previews are real adapters with explicit minimization; browser collection and memory dumps remain excluded. Other adapters are enabled only after timestamp semantics, performance limits, redaction behavior, privacy purpose and failure tests are complete. Production backend work additionally requires encrypted transport, signed rule distribution, retention controls and an appeal workflow.
+The requested WinPrefetch, Autoruns, String Explorer, USB, saved-file, PowerShell, path, MFT, kernel dump, journal, crash, browser, BAM, Amcache and SRUM capabilities are tracked individually in the in-app catalog and [module roadmap](docs/module-roadmap.md). Prefetch, PowerShell, crash and Amcache use real adapters with explicit minimization; browser collection and memory dumps remain excluded. v0.5.0 compensates with stronger executable, driver, Code Integrity and security-posture evidence while bounded NTFS history, SRUM minimization, bundle reopening/encryption and signed rule distribution remain staged work.

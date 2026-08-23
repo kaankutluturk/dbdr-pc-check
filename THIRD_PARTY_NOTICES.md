@@ -7,6 +7,9 @@ DBDR Evidence Suite uses `Microsoft.O365.Security.Native.libyara.NET.Core` 4.5.5
 - https://github.com/microsoft/libyara.NET
 - https://github.com/VirusTotal/yara
 
-## Future parser integrations
+## Eric Zimmerman Prefetch parser
 
-Planned Eric Zimmerman parser integrations are not shipped in v0.3. Their repositories use permissive licenses, but a dependency is added only with a pinned version, reviewed transitive dependencies, retained license text and Windows fixture tests.
+DBDR Evidence Suite uses the `Prefetch` 2026.5.2 package by Eric Zimmerman to parse Windows Prefetch headers and last-run timestamps. It is distributed under the MIT License. The collector wraps it with compressed-input and declared-decompression-size limits and does not serialize referenced-file or volume lists exposed by the parser.
+
+- https://github.com/EricZimmerman/Prefetch
+- https://www.nuget.org/packages/Prefetch/2026.5.2

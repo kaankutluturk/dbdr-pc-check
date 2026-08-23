@@ -2,15 +2,20 @@ using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using Dbdr.PcCheck.Core;
+using Dbdr.PcCheck.Windows;
 
 namespace Dbdr.PcCheck.App;
 
 public partial class App : Application
 {
     private readonly PathRedactor _redactor = new();
+    private bool _selfTestMode;
+    private bool _workerMode;
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        _selfTestMode = e.Args.Any(argument => string.Equals(argument, "--self-test", StringComparison.OrdinalIgnoreCase));
+        _workerMode = e.Args.Any(argument => string.Equals(argument, "--yara-worker", StringComparison.OrdinalIgnoreCase));
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
         TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
@@ -19,7 +24,14 @@ public partial class App : Application
         {
             base.OnStartup(e);
 
-            if (e.Args.Any(argument => string.Equals(argument, "--self-test", StringComparison.OrdinalIgnoreCase)))
+            if (_workerMode)
+            {
+                var exitCode = YaraWorkerHost.RunAsync(CancellationToken.None).GetAwaiter().GetResult();
+                Shutdown(exitCode);
+                return;
+            }
+
+            if (_selfTestMode)
             {
                 var window = new MainWindow();
                 window.Close();
@@ -32,14 +44,14 @@ public partial class App : Application
         }
         catch (Exception exception)
         {
-            ReportStartupFailure(exception);
+            HandleFatalException(exception);
             Shutdown(1);
         }
     }
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        ReportStartupFailure(e.Exception);
+        HandleFatalException(e.Exception);
         e.Handled = true;
         Shutdown(1);
     }
@@ -70,6 +82,17 @@ public partial class App : Application
             "Startup failed",
             MessageBoxButton.OK,
             MessageBoxImage.Error);
+    }
+
+    private void HandleFatalException(Exception exception)
+    {
+        if (_selfTestMode || _workerMode)
+        {
+            WriteDiagnostic(exception);
+            return;
+        }
+
+        ReportStartupFailure(exception);
     }
 
     private string? WriteDiagnostic(Exception exception)

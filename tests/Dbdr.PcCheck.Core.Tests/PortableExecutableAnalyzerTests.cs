@@ -53,6 +53,36 @@ public sealed class PortableExecutableAnalyzerTests
         }
     }
 
+    [Fact]
+    public async Task SamplesLargeOverlayEntropyWithinBounds()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dbdr-pe-{Guid.NewGuid():N}.exe");
+        try
+        {
+            var bytes = CreateMinimalPe(invalidSectionBounds: false);
+            Array.Resize(ref bytes, bytes.Length + 1024 * 1024);
+            for (var index = 1024; index < bytes.Length; index++)
+            {
+                bytes[index] = (byte)((index * 73 + 19) & 0xff);
+            }
+
+            await File.WriteAllBytesAsync(path, bytes);
+
+            var evidence = await new PortableExecutableAnalyzer().AnalyzeAsync(path, CancellationToken.None);
+
+            Assert.Equal((1024 * 1024).ToString(System.Globalization.CultureInfo.InvariantCulture), evidence.OverlaySizeBytes);
+            Assert.Equal("high", evidence.OverlayEntropyClassification);
+            Assert.NotNull(evidence.OverlayEntropyBitsPerByte);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
     private static byte[] CreateMinimalPe(bool invalidSectionBounds)
     {
         var bytes = new byte[1024];

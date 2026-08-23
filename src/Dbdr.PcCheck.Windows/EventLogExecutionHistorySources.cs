@@ -1,5 +1,6 @@
 using System.Diagnostics.Eventing.Reader;
 using System.Globalization;
+using System.Xml.Linq;
 using Dbdr.PcCheck.Core;
 using Dbdr.PcCheck.Core.Models;
 
@@ -35,27 +36,53 @@ public sealed class ServiceInstallEventSource(PathRedactor redactor) : EventLogE
     }
 }
 
-public sealed class CodeIntegrityEventSource : EventLogExecutionHistorySource
+public sealed class CodeIntegrityEventSource(PathRedactor redactor) : EventLogExecutionHistorySource
 {
-    public override string Name => "Windows Code Integrity warnings and errors";
+    public override string Name => "Windows Code Integrity validation and block events";
 
     protected override string LogName => "Microsoft-Windows-CodeIntegrity/Operational";
 
-    protected override string Query => "*[System[(Level=2 or Level=3)]]";
+    protected override string Query => "*[System[(EventID=3001 or EventID=3004 or EventID=3023 or EventID=3033 or EventID=3034 or EventID=3064 or EventID=3065 or EventID=3074 or EventID=3076 or EventID=3077 or EventID=3079 or EventID=3080 or EventID=3081 or EventID=3089)]]";
 
-    protected override EvidenceRecord CreateRecord(EventRecord record, DateTimeOffset timestampUtc) => new(
-        "execution-history",
-        "event.code_integrity",
-        "Windows Event Log:CodeIntegrity/Operational",
-        DateTimeOffset.UtcNow,
-        timestampUtc,
-        new Dictionary<string, string?>
-        {
-            ["eventId"] = record.Id.ToString(CultureInfo.InvariantCulture),
-            ["recordId"] = record.RecordId?.ToString(CultureInfo.InvariantCulture),
-            ["provider"] = record.ProviderName,
-            ["level"] = record.Level?.ToString(CultureInfo.InvariantCulture),
-        });
+    protected override EvidenceRecord CreateRecord(EventRecord record, DateTimeOffset timestampUtc)
+    {
+        var data = EventDataFieldReader.Read(record);
+        return new EvidenceRecord(
+            "execution-history",
+            "event.code_integrity",
+            "Windows Event Log:CodeIntegrity/Operational selected validation metadata",
+            DateTimeOffset.UtcNow,
+            timestampUtc,
+            new Dictionary<string, string?>
+            {
+                ["eventId"] = record.Id.ToString(CultureInfo.InvariantCulture),
+                ["recordId"] = record.RecordId?.ToString(CultureInfo.InvariantCulture),
+                ["provider"] = record.ProviderName,
+                ["level"] = record.Level?.ToString(CultureInfo.InvariantCulture),
+                ["classification"] = Classify(record.Id),
+                ["filePath"] = redactor.Redact(data.GetValueOrDefault("FileName") ?? data.GetValueOrDefault("FilePath")),
+                ["processPath"] = redactor.Redact(data.GetValueOrDefault("ProcessName")),
+                ["requestedSigningLevel"] = data.GetValueOrDefault("RequestedSigningLevel"),
+                ["validatedSigningLevel"] = data.GetValueOrDefault("ValidatedSigningLevel"),
+                ["verificationError"] = data.GetValueOrDefault("VerificationError"),
+                ["signatureType"] = data.GetValueOrDefault("SignatureType"),
+                ["totalSignatureCount"] = data.GetValueOrDefault("TotalSignatureCount"),
+                ["policyName"] = data.GetValueOrDefault("PolicyName"),
+                ["timestampBasis"] = "Code Integrity event creation time; message and non-whitelisted payload fields excluded",
+            });
+    }
+
+    private static string Classify(int eventId) => eventId switch
+    {
+        3001 => "unsigned-driver-load-attempt",
+        3004 => "signature-validation-failure",
+        3023 => "driver-policy-requirement-failure",
+        3033 or 3065 or 3077 or 3079 or 3081 => "blocked-or-signing-requirement-failure",
+        3034 or 3064 or 3076 or 3080 => "audit-would-block",
+        3074 => "page-hash-failure-with-memory-integrity",
+        3089 => "correlated-signature-information",
+        _ => "selected-validation-event",
+    };
 }
 
 public sealed class ApplicationCrashEventSource(PathRedactor redactor) : EventLogExecutionHistorySource
@@ -196,4 +223,48 @@ public abstract class EventLogExecutionHistorySource : IExecutionHistorySource
         index >= 0 && index < properties.Count
             ? Convert.ToString(properties[index].Value, CultureInfo.InvariantCulture)
             : null;
+}
+
+internal static class EventDataFieldReader
+{
+    private static readonly HashSet<string> AllowedNames = new(StringComparer.Ordinal)
+    {
+        "FileName",
+        "FilePath",
+        "ProcessName",
+        "RequestedSigningLevel",
+        "ValidatedSigningLevel",
+        "VerificationError",
+        "SignatureType",
+        "TotalSignatureCount",
+        "PolicyName",
+    };
+
+    public static IReadOnlyDictionary<string, string?> Read(EventRecord record)
+    {
+        try
+        {
+            var document = XDocument.Parse(record.ToXml(), LoadOptions.None);
+            return document
+                .Descendants()
+                .Where(element => element.Name.LocalName == "Data")
+                .Select(element => new
+                {
+                    Name = element.Attribute("Name")?.Value,
+                    Value = element.Value,
+                })
+                .Where(item => item.Name is not null && AllowedNames.Contains(item.Name))
+                .GroupBy(item => item.Name!, StringComparer.Ordinal)
+                .ToDictionary(
+                    group => group.Key,
+                    group => (string?)group.First().Value,
+                    StringComparer.Ordinal);
+        }
+        catch (Exception exception) when (exception is EventLogException
+            or System.Xml.XmlException
+            or InvalidOperationException)
+        {
+            return new Dictionary<string, string?>(StringComparer.Ordinal);
+        }
+    }
 }

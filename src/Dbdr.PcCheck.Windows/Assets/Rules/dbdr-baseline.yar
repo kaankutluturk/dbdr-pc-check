@@ -117,3 +117,68 @@ rule DBDR_Anti_Analysis_API_Cluster : review binary_triage
     condition:
         $mz at 0 and 4 of ($debugger, $remote_debugger, $query_process, $debug_string, $performance, $tick)
 }
+
+rule DBDR_Process_Memory_And_Input_Cluster : review binary_triage
+{
+    meta:
+        description = "Cross-cluster process memory access and input polling"
+        interpretation = "Review lead only; debuggers, trainers, overlays, accessibility and test automation may match"
+        profile = "dbdr-baseline-0.5"
+
+    strings:
+        $mz = { 4D 5A }
+        $open = "OpenProcess" ascii wide
+        $read = "ReadProcessMemory" ascii wide
+        $write = "WriteProcessMemory" ascii wide
+        $query = "NtQueryInformationProcess" ascii wide
+        $async_key = "GetAsyncKeyState" ascii wide
+        $key_state = "GetKeyState" ascii wide
+        $raw_input = "GetRawInputData" ascii wide
+
+    condition:
+        $mz at 0 and 2 of ($open, $read, $write, $query) and 1 of ($async_key, $key_state, $raw_input)
+}
+
+rule DBDR_Known_Vulnerable_Driver_Loader_Cluster : review binary_triage
+{
+    meta:
+        description = "Known vulnerable-driver filename combined with service or device-control APIs"
+        interpretation = "Review lead only; hardware diagnostics and security research tools may contain the same names"
+        profile = "dbdr-baseline-0.5"
+
+    strings:
+        $mz = { 4D 5A }
+        $driver_1 = "iqvw64e.sys" ascii wide nocase
+        $driver_2 = "gdrv.sys" ascii wide nocase
+        $driver_3 = "RTCore64.sys" ascii wide nocase
+        $driver_4 = "dbutil_2_3.sys" ascii wide nocase
+        $driver_5 = "WinRing0x64.sys" ascii wide nocase
+        $service = "CreateService" ascii wide
+        $start = "StartService" ascii wide
+        $device = "DeviceIoControl" ascii wide
+        $privilege = "SeLoadDriverPrivilege" ascii wide
+        $load = "NtLoadDriver" ascii wide
+
+    condition:
+        $mz at 0 and 1 of ($driver_*) and 2 of ($service, $start, $device, $privilege, $load)
+}
+
+rule DBDR_Artifact_Removal_API_Cluster : review binary_triage
+{
+    meta:
+        description = "Multiple APIs capable of removing Windows execution-history artifacts"
+        interpretation = "Review lead only; maintenance, privacy and administrative utilities may match"
+        profile = "dbdr-baseline-0.5"
+
+    strings:
+        $mz = { 4D 5A }
+        $clear_a = "ClearEventLogA" ascii wide
+        $clear_w = "ClearEventLogW" ascii wide
+        $evt_clear = "EvtClearLog" ascii wide
+        $delete_usn = "FSCTL_DELETE_USN_JOURNAL" ascii wide
+        $delete_file = "DeleteFile" ascii wide
+        $set_zero = "SetFileInformationByHandle" ascii wide
+
+    condition:
+        $mz at 0 and 3 of ($clear_a, $clear_w, $evt_clear, $delete_usn, $delete_file, $set_zero)
+}

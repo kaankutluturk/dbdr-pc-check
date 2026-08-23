@@ -1,4 +1,4 @@
-# v0.3 architecture
+# v0.5 architecture
 
 ## Layers
 
@@ -46,4 +46,4 @@ New top-level modules implement `IEvidenceCollector`. Execution-history sub-sour
 
 ## Future backend boundary
 
-The v0.3 client has no upload path. A future staff analyzer should consume the same bundle schema without granting it collection privileges. Any case backend must use short-lived case authorization, authenticated encryption, retention enforcement, audit logs and independently signed rule metadata.
+The v0.5 client has no upload path. A future staff analyzer should consume the same bundle schema without granting it collection privileges. Any case backend must use short-lived case authorization, authenticated encryption, retention enforcement, audit logs and independently signed rule metadata.

@@ -28,17 +28,21 @@ The process snapshot is cached before slower module/file inspection. This reduce
 ## Source-specific limitations
 
 - **BAM:** layout and retention vary by Windows version and configuration. A missing key or entry is not proof of absence.
-- **Prefetch:** v0.4.0 records file metadata only. File last-write time is not treated as a fully parsed execution timestamp.
+- **Prefetch:** v0.5.0 parses executable name, format version, run count and last-run FILETIMEs under explicit file-count, compressed-input and declared-decompression limits. Referenced-file lists, volume identifiers and raw bytes are not serialized.
 - **Event Log:** channels can be disabled, cleared, inaccessible or truncated. The collector caps inspection per configured query and reports coverage.
 - **Amcache:** the live inventory is incomplete, version-dependent and not an execution log. A file entry, link date or absent entry does not prove execution, account ownership, installation time or evasion. The collector limits output to executable file types and reports its 5,000-record cap.
 - **Application crashes:** Application Error event fields vary with Windows/provider versions. A crash can be benign, and the absence of a crash event can reflect retention or channel access. Dump content is not collected.
 - **PowerShell lifecycle:** events 400, 403 and 600 show engine/provider activity, not the command or actor. Legitimate software frequently hosts PowerShell, and payload exclusion intentionally prevents command reconstruction.
+- **USN Journal:** the opt-in adapter reads only a bounded recent journal tail and emits execution-capable leaf filenames. The tail can omit older review-window activity on busy volumes, timestamps and journals can be manipulated by a privileged adversary, and the lack of reconstructed parent paths deliberately limits interpretation. A create/delete sequence is a review lead, not proof of evasion.
 - **Scheduled tasks:** command arguments and principals are excluded for privacy, so the record is intentionally incomplete.
 - **Devices:** only non-unique model identifiers are retained. VID/PID or VEN/DEV values identify a model family, not a particular device or DMA behavior.
 - **Module lists:** file-backed modules do not establish the absence of non-file-backed, kernel-level or external manipulation.
+- **Loaded drivers:** PSAPI exposes registered loaded image paths, not arbitrary kernel allocations or manual maps. Windows 11 24H2 can return all-null handles when SeDebugPrivilege is not enabled; that condition is reported as a gap. Kernel base addresses are never serialized.
 - **Hashes/signatures:** unsigned, unknown or inaccessible files are weak observations and require corroboration.
-- **Entropy:** packed, compressed and encrypted legitimate software can have high entropy. The analyzer correlates high entropy with a non-valid signature but still produces only a review item.
-- **YARA:** rule quality, scope and version directly control false positives and false negatives. The suite records ruleset hashes and rule identifiers so a reviewer can reproduce and challenge a match. A match never creates a verdict.
+- **PE structure/imports:** writable+executable sections, packer-like names, overlays and loader-capable APIs also occur in legitimate protectors, launchers, anti-cheat, overlays, accessibility and administration tools. The parser is capped and treats malformed/capped input explicitly. The analysis profile requires path or signature context for structural review findings.
+- **Entropy:** packed, compressed and encrypted legitimate software can have high entropy. The analyzer correlates high entropy with signature and structural context but still produces only a review item.
+- **YARA:** rule quality, scope and version directly control false positives and false negatives. The suite records ruleset hashes and rule identifiers so a reviewer can reproduce and challenge a match. Because the managed wrapper does not expose YARA's native timeout API, production scans run in a killable same-EXE worker with a 20-second per-file deadline. Inputs and reported matches are capped. A match never creates a verdict.
+- **Security posture:** Secure Boot, VBS, memory integrity, driver-blocklist and App Control state describe protection layers, not behavior. Disabled or unavailable protection is not proof of tampering or cheating.
 
 ## Abuse cases
 

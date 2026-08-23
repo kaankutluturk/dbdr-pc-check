@@ -48,4 +48,66 @@ public sealed class ScheduledTaskCollectorTests
             Directory.Delete(taskDirectory, recursive: true);
         }
     }
+
+    [Fact]
+    public async Task EnrichesResolvedScheduledTaskExecutable()
+    {
+        var taskDirectory = Path.Combine(Path.GetTempPath(), "DbdrScheduledTaskTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(taskDirectory);
+        var executablePath = Path.Combine(Path.GetTempPath(), $"dbdr-runner-{Guid.NewGuid():N}.exe");
+        var taskPath = Path.Combine(taskDirectory, "ExampleTask");
+        await File.WriteAllBytesAsync(executablePath, [0x4d, 0x5a]);
+        var escapedExecutablePath = System.Security.SecurityElement.Escape(executablePath);
+        await File.WriteAllTextAsync(taskPath, $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+              <Settings><Enabled>true</Enabled></Settings>
+              <Actions><Exec><Command>{escapedExecutablePath}</Command></Exec></Actions>
+            </Task>
+            """);
+
+        try
+        {
+            var now = new DateTimeOffset(2026, 8, 11, 18, 0, 0, TimeSpan.Zero);
+            var inspector = new FakeFileInspector();
+            var collector = new ScheduledTaskCollector(new PathRedactor(), taskDirectory, inspector);
+            var context = new CollectionContext("case-1", now.AddHours(-2), now, now, "test");
+
+            var result = await collector.CollectAsync(context, null, CancellationToken.None);
+
+            var binary = Assert.Single(result.Records, record => record.Kind == "persistence.binary");
+            Assert.Equal("ABC123", binary.Fields["sha256"]);
+            Assert.Equal("persistence.scheduled_task", binary.Fields["referenceKinds"]);
+            Assert.Equal(1, inspector.InspectionCount);
+        }
+        finally
+        {
+            Directory.Delete(taskDirectory, recursive: true);
+            if (File.Exists(executablePath))
+            {
+                File.Delete(executablePath);
+            }
+        }
+    }
+
+    private sealed class FakeFileInspector : IExecutableFileInspector
+    {
+        public int InspectionCount { get; private set; }
+
+        public Task<ExecutableFileEvidence> InspectAsync(string path, CancellationToken cancellationToken)
+        {
+            InspectionCount++;
+            return Task.FromResult(new ExecutableFileEvidence(
+                "2",
+                null,
+                null,
+                "ABC123",
+                "unsigned",
+                null,
+                null,
+                "runner.exe",
+                "true",
+                null));
+        }
+    }
 }

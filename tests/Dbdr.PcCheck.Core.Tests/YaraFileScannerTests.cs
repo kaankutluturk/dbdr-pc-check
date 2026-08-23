@@ -33,4 +33,36 @@ public sealed class YaraFileScannerTests
             }
         }
     }
+
+    [Fact]
+    public async Task CustomRuleIncludesAreRejectedBeforeCompilation()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"dbdr-yara-rules-{Guid.NewGuid():N}.yar");
+        try
+        {
+            await File.WriteAllTextAsync(path, "include \"another-rule.yar\"");
+
+            var exception = Assert.Throws<InvalidDataException>(() => new YaraFileScanner(path));
+
+            Assert.Contains("include", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void EmbeddedRulesetHashIsAvailableWithoutStartingNativeScanner()
+    {
+        var hashes = YaraFileScanner.CalculateRulesetHashes();
+
+        var hash = Assert.Single(hashes);
+        Assert.Equal("baseline", hash.Key);
+        Assert.Equal(64, hash.Value.Length);
+        Assert.All(hash.Value, character => Assert.True(Uri.IsHexDigit(character)));
+    }
 }

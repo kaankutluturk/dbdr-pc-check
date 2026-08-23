@@ -1,6 +1,6 @@
-# Evidence schema 0.4.0
+# Evidence schema 0.5.0
 
-`case.json` contains `evidenceSchemaVersion: "0.4.0"` and `analysisProfileVersion: "0.3.0"`.
+`case.json` contains `evidenceSchemaVersion: "0.5.0"` and `analysisProfileVersion: "0.5.0"`.
 
 | Entry | Purpose |
 | --- | --- |
@@ -23,7 +23,7 @@ Every normalized record contains:
 - `sourceTimestampUtc`: nullable timestamp supplied or directly represented by the source; and
 - `fields`: string-keyed properties specific to the record kind.
 
-`collectedAtUtc` and `sourceTimestampUtc` are not interchangeable. For `process.snapshot`, the source timestamp is process creation time. For `execution.prefetch`, it is the Prefetch file's last-write time and the record explicitly identifies that timestamp basis; it is not described as a parsed run time.
+`collectedAtUtc` and `sourceTimestampUtc` are not interchangeable. For `process.snapshot`, the source timestamp is process creation time. For `execution.prefetch`, it is a parsed Prefetch last-run FILETIME inside the explicit review window. The record retains its timestamp basis, parser version, executable name and run count but excludes referenced-file and volume lists.
 
 Null and unavailable values remain explicit. Module/source failures do not erase successful records.
 
@@ -51,15 +51,20 @@ Findings are deterministic summaries of collected evidence and collection failur
 
 ## Binary triage fields
 
-`process.module` and `file.metadata` records may include:
+`process.module`, `file.metadata` and `persistence.binary` records may include:
 
 - `entropyBitsPerByte` and `entropyClassification` (`ordinary`, `elevated` or `high`);
-- `yaraStatus` (`disabled`, `no-match`, `matched` or `unavailable`);
+- `authenticodeStatus`, `authenticodeVerificationMode`, and embedded-signer subject, issuer, certificate thumbprint and validity interval when Windows exposes them;
+- `yaraStatus` (`disabled`, `no-match`, `matched`, `skipped-size-limit` or `unavailable`);
 - `yaraMatchCount` and `yaraMatches`, containing rule identifiers only;
 - `yaraRulesets` and `yaraRulesetSha256`, which identify the rule material used; and
-- `yaraError`, containing only an exception type when the scan was unavailable.
+- `yaraError`, containing only an exception type when the scan was unavailable; and
+- `yaraMaximumFileSizeBytes`, identifying the scan ceiling; and
+- `yaraMatchesTruncated`, identifying when the 256-rule-identifier reporting cap was reached.
 
-The schema never stores YARA match bytes, offsets, custom rule contents or a copy of the scanned file. Entropy and YARA results are observations. The analysis profile creates a neutral review item for a YARA match or for the correlation of high entropy with a non-valid signature; neither is a verdict.
+For PE files these records can also include `peStatus`, `peMachine`, `peFormat`, `peSubsystem`, `peIsManaged`, `peLinkerTimestampUtc`, `peLinkerTimestampBasis`, `peSectionCount`, `peSections`, `peHighEntropySectionCount`, `peWritableExecutableSectionCount`, `peSuspiciousSectionNames`, `peImportDllCount`, `peImportApiCount`, `peImportFingerprintSha256`, `peSuspiciousImports`, `peImportRiskClusters`, `peOverlaySizeBytes`, `peOverlayEntropyBitsPerByte`, `peOverlayEntropyClassification`, `peCertificateTablePresent`, `pePdbFileName` and `peInspectionError`. The import fingerprint hashes the bounded normalized DLL/API-name set for correlation without serializing the full set. Section entropy is sampled at no more than 4 MiB per section and 32 MiB total per file; overlay entropy is sampled at no more than 4 MiB. Import and section counts are capped. `peLinkerTimestampUtc` is explicitly untrusted linker metadata, not a file-system or execution time.
+
+The schema never stores YARA match bytes, offsets, custom rule contents or a copy of the scanned file. Production scans run in a killable instance of the same executable with a 20-second per-file timeout; cancellation or timeout terminates that helper. Entropy and YARA results are observations. The analysis profile creates a neutral review item for a YARA match or for the correlation of high entropy with a non-valid signature; neither is a verdict.
 
 ## Extended forensic metadata
 
@@ -69,7 +74,7 @@ The opt-in extended source group adds three record kinds:
 - `event.application_crash`: time-bounded Application Error event 1000 metadata. Fields can include application/fault-module name and version, exception code and redacted application/module paths. Message bodies, report identifiers and dumps are absent.
 - `event.powershell_engine`: time-bounded Windows PowerShell event 400, 403 or 600 metadata. Fields contain event/provider identifiers, level and a normalized lifecycle value. Event payloads, commands, scripts, script blocks, host arguments and user identities are absent.
 
-## v0.4.0 record kinds
+## v0.5.0 record kinds
 
 - `system.snapshot`
 - `process.snapshot`
@@ -79,13 +84,20 @@ The opt-in extended source group adds three record kinds:
 - `execution.bam`
 - `execution.prefetch`
 - `execution.amcache`
+- `execution.usn_executable_change`
 - `event.service_install`
 - `event.code_integrity`
 - `event.application_crash`
 - `event.powershell_engine`
 - `persistence.run_key`
+- `persistence.registry_location`
+- `persistence.ifeo_debugger`
+- `persistence.startup_file`
+- `persistence.wmi_consumer`
 - `persistence.service`
 - `persistence.driver`
+- `persistence.loaded_driver`
+- `persistence.binary`
 - `persistence.scheduled_task`
 - `device.snapshot`
 - `coverage.source`

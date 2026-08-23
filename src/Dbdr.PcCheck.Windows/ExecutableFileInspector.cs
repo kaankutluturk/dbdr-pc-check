@@ -17,6 +17,12 @@ public sealed record ExecutableFileEvidence(
     string? OriginalFileName,
     string? IdentityStableDuringInspection,
     string? Error,
+    string? AuthenticodeVerificationMode = null,
+    string? AuthenticodeSignerSubject = null,
+    string? AuthenticodeSignerIssuer = null,
+    string? AuthenticodeSignerThumbprint = null,
+    string? AuthenticodeSignerNotBeforeUtc = null,
+    string? AuthenticodeSignerNotAfterUtc = null,
     string? EntropyBitsPerByte = null,
     string? EntropyClassification = null,
     YaraScanEvidence? Yara = null,
@@ -29,6 +35,12 @@ public sealed record ExecutableFileEvidence(
         fields["fileModifiedUtc"] = ModifiedUtc;
         fields["sha256"] = Sha256;
         fields["authenticodeStatus"] = AuthenticodeStatus;
+        fields["authenticodeVerificationMode"] = AuthenticodeVerificationMode;
+        fields["authenticodeSignerSubject"] = AuthenticodeSignerSubject;
+        fields["authenticodeSignerIssuer"] = AuthenticodeSignerIssuer;
+        fields["authenticodeSignerThumbprint"] = AuthenticodeSignerThumbprint;
+        fields["authenticodeSignerNotBeforeUtc"] = AuthenticodeSignerNotBeforeUtc;
+        fields["authenticodeSignerNotAfterUtc"] = AuthenticodeSignerNotAfterUtc;
         fields["companyName"] = CompanyName;
         fields["productName"] = ProductName;
         fields["originalFileName"] = OriginalFileName;
@@ -48,6 +60,7 @@ public interface IExecutableFileInspector
 
 public sealed class ExecutableFileInspector : IExecutableFileInspector
 {
+    public const long MaximumInspectedFileSizeBytes = 2L * 1024 * 1024 * 1024;
     private readonly Dictionary<string, Task<ExecutableFileEvidence>> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _cacheGate = new();
     private readonly IYaraFileScanner? _yaraScanner;
@@ -98,6 +111,20 @@ public sealed class ExecutableFileInspector : IExecutableFileInspector
             var beforeLength = before.Length;
             var beforeCreatedUtc = before.CreationTimeUtc;
             var beforeModifiedUtc = before.LastWriteTimeUtc;
+            if (beforeLength > MaximumInspectedFileSizeBytes)
+            {
+                return new ExecutableFileEvidence(
+                    beforeLength.ToString(CultureInfo.InvariantCulture),
+                    beforeCreatedUtc.ToString("O", CultureInfo.InvariantCulture),
+                    beforeModifiedUtc.ToString("O", CultureInfo.InvariantCulture),
+                    null,
+                    "unavailable",
+                    null,
+                    null,
+                    null,
+                    "true",
+                    "FileSizeLimitExceeded");
+            }
 
             string hash;
             var entropy = new BinaryEntropy();
@@ -123,7 +150,7 @@ public sealed class ExecutableFileInspector : IExecutableFileInspector
 
             cancellationToken.ThrowIfCancellationRequested();
             var version = FileVersionInfo.GetVersionInfo(path);
-            var authenticodeStatus = AuthenticodeVerifier.GetStatus(path);
+            var authenticode = AuthenticodeVerifier.Inspect(path);
             var portableExecutableEvidence = await portableExecutableAnalyzer
                 .AnalyzeAsync(path, cancellationToken)
                 .ConfigureAwait(false);
@@ -143,12 +170,18 @@ public sealed class ExecutableFileInspector : IExecutableFileInspector
                 beforeCreatedUtc.ToString("O", CultureInfo.InvariantCulture),
                 beforeModifiedUtc.ToString("O", CultureInfo.InvariantCulture),
                 hash,
-                authenticodeStatus,
+                authenticode.Status,
                 version.CompanyName,
                 version.ProductName,
                 version.OriginalFilename,
                 identityStable ? "true" : "false",
                 identityStable ? null : "File identity changed while it was inspected.",
+                authenticode.VerificationMode,
+                authenticode.SignerSubject,
+                authenticode.SignerIssuer,
+                authenticode.SignerThumbprint,
+                authenticode.SignerNotBeforeUtc,
+                authenticode.SignerNotAfterUtc,
                 entropy.CalculateBitsPerByte().ToString("F4", CultureInfo.InvariantCulture),
                 BinaryEntropy.Classify(entropy.CalculateBitsPerByte()),
                 yaraEvidence,

@@ -1,0 +1,106 @@
+name: signed-build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  artifact-signing:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: "**/*.csproj"
+
+      - name: Restore, build and test
+        shell: pwsh
+        run: |
+          dotnet restore .\DbdrPcCheck.slnx
+          dotnet build .\DbdrPcCheck.slnx --configuration Release --no-restore
+          dotnet test .\DbdrPcCheck.slnx --configuration Release --no-build
+
+      - name: Publish portable single-file build
+        run: >-
+          dotnet publish .\src\Dbdr.PcCheck.App\Dbdr.PcCheck.App.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          --output .\artifacts\win-x64
+
+      - name: Verify and launch unsigned build
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem .\artifacts\win-x64 -File)
+          if ($files.Count -ne 1 -or $files[0].Name -ne "DBDR.PcCheck.exe") {
+            throw "Portable publish must contain exactly one DBDR.PcCheck.exe file."
+          }
+          $process = Start-Process $files[0].FullName -ArgumentList "--self-test" -PassThru
+          if (-not $process.WaitForExit(30000)) {
+            $process.Kill()
+            throw "The packaged application did not complete its startup self-test."
+          }
+          if ($process.ExitCode -ne 0) {
+            throw "The packaged application startup self-test failed with exit code $($process.ExitCode)."
+          }
+
+      - name: Sign in to Azure with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Authenticode sign with Microsoft Artifact Signing
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          files: ${{ github.workspace }}\artifacts\win-x64\DBDR.PcCheck.exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Verify signed application and package ZIP
+        shell: pwsh
+        run: |
+          $exe = ".\artifacts\win-x64\DBDR.PcCheck.exe"
+          $signature = Get-AuthenticodeSignature $exe
+          if ($signature.Status -ne "Valid") {
+            $signature | Format-List
+            throw "Authenticode verification failed with status $($signature.Status)."
+          }
+          $process = Start-Process $exe -ArgumentList "--self-test" -PassThru
+          if (-not $process.WaitForExit(30000)) {
+            $process.Kill()
+            throw "The signed application did not complete its startup self-test."
+          }
+          if ($process.ExitCode -ne 0) {
+            throw "The signed application startup self-test failed with exit code $($process.ExitCode)."
+          }
+          Compress-Archive -Path $exe -DestinationPath ".\artifacts\dbdr-pc-check-v0.5.0-signed-win-x64.zip"
+          (Get-FileHash ".\artifacts\dbdr-pc-check-v0.5.0-signed-win-x64.zip" -Algorithm SHA256).Hash.ToLowerInvariant() |
+            Set-Content ".\artifacts\dbdr-pc-check-v0.5.0-signed-win-x64.zip.sha256"
+
+      - name: Upload signed transport-safe build
+        uses: actions/upload-artifact@v7
+        with:
+          name: dbdr-pc-check-v0.5.0-signed-win-x64-${{ github.sha }}
+          path: |
+            artifacts/dbdr-pc-check-v0.5.0-signed-win-x64.zip
+            artifacts/dbdr-pc-check-v0.5.0-signed-win-x64.zip.sha256
+          if-no-files-found: error
+          retention-days: 30

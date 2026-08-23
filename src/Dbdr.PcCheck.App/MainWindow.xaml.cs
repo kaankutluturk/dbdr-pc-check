@@ -167,7 +167,7 @@ public partial class MainWindow : Window
             var collectionStartedUtc = DateTimeOffset.UtcNow;
             var version = Assembly.GetExecutingAssembly()
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                .InformationalVersion ?? "0.4.0-development";
+                .InformationalVersion ?? "0.5.0-development";
             var context = new CollectionContext(
                 caseId,
                 reviewWindowStartUtc,
@@ -178,7 +178,7 @@ public partial class MainWindow : Window
             var processSnapshotProvider = new LiveProcessSnapshotProvider();
             var gameModuleEnumerator = new GameModuleEnumerator();
             using var yaraScanner = YaraScanCheckBox.IsChecked == true
-                ? new YaraFileScanner(customYaraRules.Length == 0 ? null : customYaraRules)
+                ? new IsolatedYaraFileScanner(customYaraRules.Length == 0 ? null : customYaraRules)
                 : null;
             var fileInspector = new ExecutableFileInspector(yaraScanner);
             var disabledSources = new List<string>();
@@ -206,7 +206,7 @@ public partial class MainWindow : Window
                     new BamExecutionHistorySource(redactor),
                     new PrefetchExecutionHistorySource(redactor),
                     new ServiceInstallEventSource(redactor),
-                    new CodeIntegrityEventSource(),
+                    new CodeIntegrityEventSource(redactor),
                 ]);
             }
             else
@@ -216,7 +216,7 @@ public partial class MainWindow : Window
                     "Background Activity Monitor (BAM)",
                     "Windows Prefetch",
                     "Service Control Manager installation events",
-                    "Windows Code Integrity warnings and errors",
+                    "Windows Code Integrity validation and block events",
                 ]);
             }
 
@@ -227,6 +227,7 @@ public partial class MainWindow : Window
                     new AmcacheExecutionHistorySource(redactor),
                     new ApplicationCrashEventSource(redactor),
                     new PowerShellEngineEventSource(),
+                    new UsnJournalExecutionHistorySource(),
                 ]);
             }
             else
@@ -236,6 +237,7 @@ public partial class MainWindow : Window
                     "Amcache application inventory",
                     "Application Error crash metadata",
                     "PowerShell engine and provider lifecycle",
+                    "NTFS USN Journal executable changes",
                 ]);
             }
 
@@ -255,7 +257,7 @@ public partial class MainWindow : Window
 
             if (ScheduledTasksCheckBox.IsChecked == true)
             {
-                collectors.Add(new ScheduledTaskCollector(redactor));
+                collectors.Add(new ScheduledTaskCollector(redactor, fileInspector: fileInspector));
             }
             else
             {

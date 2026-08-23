@@ -10,6 +10,8 @@ public sealed class ProcessFileMetadataCollector(
     IExecutableFileInspector fileInspector,
     PathRedactor redactor) : IEvidenceCollector
 {
+    public const int MaximumExecutableFiles = 1024;
+
     public string Name => "process-files";
 
     public async Task<ModuleResult> CollectAsync(
@@ -19,11 +21,15 @@ public sealed class ProcessFileMetadataCollector(
     {
         var stopwatch = Stopwatch.StartNew();
         var snapshot = await snapshotProvider.GetOrCaptureAsync(cancellationToken).ConfigureAwait(false);
-        var groups = snapshot.Processes
+        var allGroups = snapshot.Processes
             .Where(process => !string.IsNullOrWhiteSpace(process.ExecutablePath))
             .GroupBy(process => process.ExecutablePath!, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(group => group.Any(process =>
+                process.Name.Contains("DeadByDaylight", StringComparison.OrdinalIgnoreCase)))
+            .ThenByDescending(group => IsUserWritablePath(group.Key))
+            .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+        var groups = allGroups.Take(MaximumExecutableFiles).ToArray();
         var records = new List<EvidenceRecord>(groups.Length);
         var inspectionFailures = 0;
 
@@ -62,9 +68,16 @@ public sealed class ProcessFileMetadataCollector(
                 fields));
         }
 
-        var warnings = inspectionFailures > 0
-            ? new[] { $"File inspection was incomplete for {inspectionFailures} executable path(s). Review per-record errors." }
-            : Array.Empty<string>();
+        var warnings = new List<string>();
+        if (inspectionFailures > 0)
+        {
+            warnings.Add($"File inspection was incomplete for {inspectionFailures} executable path(s). Review per-record errors.");
+        }
+
+        if (allGroups.Length > MaximumExecutableFiles)
+        {
+            warnings.Add($"Process executable enrichment was capped at {MaximumExecutableFiles.ToString(CultureInfo.InvariantCulture)} of {allGroups.Length.ToString(CultureInfo.InvariantCulture)} unique paths.");
+        }
 
         var metadataRecordCount = records.Count;
         records.Add(new EvidenceRecord(
@@ -78,12 +91,19 @@ public sealed class ProcessFileMetadataCollector(
                 ["sourceName"] = "Process executable enrichment",
                 ["status"] = metadataRecordCount == 0 ? "empty" : "available",
                 ["recordCount"] = metadataRecordCount.ToString(CultureInfo.InvariantCulture),
-                ["detail"] = inspectionFailures > 0
-                    ? $"{inspectionFailures.ToString(CultureInfo.InvariantCulture)} referenced path(s) could not be fully inspected."
-                    : "Deduplicated by executable path.",
+                ["detail"] = $"Deduplicated by executable path; inspected={groups.Length.ToString(CultureInfo.InvariantCulture)}; "
+                    + $"available={allGroups.Length.ToString(CultureInfo.InvariantCulture)}; "
+                    + $"failures={inspectionFailures.ToString(CultureInfo.InvariantCulture)}; "
+                    + $"capped={(allGroups.Length > MaximumExecutableFiles).ToString().ToLowerInvariant()}",
             }));
 
         stopwatch.Stop();
         return new ModuleResult(Name, true, stopwatch.Elapsed, records, warnings, []);
     }
+
+    private static bool IsUserWritablePath(string path) =>
+        path.Contains("\\Users\\", StringComparison.OrdinalIgnoreCase)
+        || path.Contains("\\AppData\\", StringComparison.OrdinalIgnoreCase)
+        || path.Contains("\\Temp\\", StringComparison.OrdinalIgnoreCase)
+        || path.Contains("\\Downloads\\", StringComparison.OrdinalIgnoreCase);
 }

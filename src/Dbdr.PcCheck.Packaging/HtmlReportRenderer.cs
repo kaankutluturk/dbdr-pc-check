@@ -53,6 +53,7 @@ public static class HtmlReportRenderer
 
         RenderCase(builder, result);
         RenderFindings(builder, result, FindingDisposition.NeedsReview, "Review queue", "No automated review items were generated. This is not a clean finding.");
+        RenderFindings(builder, result, FindingDisposition.Informational, "Context observations", "No informational context observations were generated.");
         RenderFindings(builder, result, FindingDisposition.CoverageGap, "Coverage gaps", "No collection gaps were reported by the enabled modules.");
         RenderSourceCoverage(builder, result);
         RenderTimeline(builder, result);
@@ -96,8 +97,14 @@ public static class HtmlReportRenderer
 
         foreach (var finding in findings)
         {
+            var badge = disposition switch
+            {
+                FindingDisposition.NeedsReview => "review\">needs review",
+                FindingDisposition.Informational => "info\">information",
+                _ => "gap\">coverage gap",
+            };
             builder.Append("<div class=\"finding\"><span class=\"badge ")
-                .Append(disposition == FindingDisposition.NeedsReview ? "review\">needs review" : "gap\">coverage gap")
+                .Append(badge)
                 .Append("</span><span class=\"finding-title\">").Append(Encode(finding.Title))
                 .Append("</span><div class=\"finding-detail\">").Append(Encode(finding.Detail))
                 .Append("</div><div class=\"source\">").Append(Encode($"{finding.Id} · {finding.Module} · {finding.RecordKind ?? "module"}"))
@@ -184,14 +191,15 @@ public static class HtmlReportRenderer
             return;
         }
 
-        builder.Append("<div class=\"scroll\"><table><thead><tr><th>Process</th><th>Module</th><th>Path</th><th>Signature</th><th>Entropy</th><th>YARA</th><th>Stable</th><th>SHA-256</th><th>Error</th></tr></thead><tbody>");
+        builder.Append("<div class=\"scroll\"><table><thead><tr><th>Process</th><th>Module</th><th>Path</th><th>Signature</th><th>Entropy</th><th>PE signals</th><th>YARA</th><th>Stable</th><th>SHA-256</th><th>Error</th></tr></thead><tbody>");
         foreach (var record in modules.OrderBy(record => Get(record, "modulePath") ?? string.Empty, StringComparer.OrdinalIgnoreCase))
         {
             builder.Append("<tr><td>").Append(Encode($"{Get(record, "processName")} ({Get(record, "processId")})"))
                 .Append("</td><td>").Append(Encode(Get(record, "moduleName")))
                     .Append("</td><td class=\"mono\">").Append(Encode(Get(record, "modulePath")))
-                    .Append("</td><td>").Append(Encode(Get(record, "authenticodeStatus")))
+                    .Append("</td><td>").Append(Encode(FormatSignature(record)))
                     .Append("</td><td>").Append(Encode(Get(record, "entropyBitsPerByte")))
+                    .Append("</td><td>").Append(Encode(FormatPeSignals(record)))
                     .Append("</td><td>").Append(Encode(Get(record, "yaraMatches") ?? Get(record, "yaraStatus")))
                     .Append("</td><td>").Append(Encode(Get(record, "identityStableDuringInspection")))
                 .Append("</td><td class=\"mono\">").Append(Encode(Get(record, "sha256")))
@@ -206,7 +214,7 @@ public static class HtmlReportRenderer
         var kinds = new[]
         {
             "execution.bam", "execution.prefetch", "execution.amcache", "event.service_install",
-            "event.code_integrity", "event.application_crash", "event.powershell_engine",
+            "execution.usn_executable_change", "event.code_integrity", "event.application_crash", "event.powershell_engine",
         };
         var records = result.Records.Where(record => kinds.Contains(record.Kind, StringComparer.Ordinal)).ToArray();
         builder.Append("<h2>Execution, crash and integrity metadata</h2><details open><summary>Selected records <span class=\"count\">(")
@@ -240,15 +248,15 @@ public static class HtmlReportRenderer
             return;
         }
 
-        builder.Append("<div class=\"scroll\"><table><thead><tr><th>Kind</th><th>Name</th><th>Command / image / value</th><th>State</th><th>Triggers</th></tr></thead><tbody>");
+        builder.Append("<div class=\"scroll\"><table><thead><tr><th>Kind</th><th>Name</th><th>Command / image / value</th><th>State</th><th>Signals / triggers</th></tr></thead><tbody>");
         foreach (var record in records.OrderBy(record => record.Kind, StringComparer.Ordinal)
                      .ThenBy(record => PersistenceName(record) ?? string.Empty, StringComparer.OrdinalIgnoreCase))
         {
             builder.Append("<tr><td><code>").Append(Encode(record.Kind))
                 .Append("</code></td><td>").Append(Encode(PersistenceName(record)))
-                .Append("</td><td class=\"mono\">").Append(Encode(Get(record, "command") ?? Get(record, "imagePath") ?? Get(record, "value")))
-                .Append("</td><td>").Append(Encode(Get(record, "state") ?? Get(record, "enabled")))
-                .Append("</td><td>").Append(Encode(Get(record, "triggerTypes"))).Append("</td></tr>");
+                .Append("</td><td class=\"mono\">").Append(Encode(Get(record, "command") ?? Get(record, "imagePath") ?? Get(record, "value") ?? Get(record, "executablePath") ?? Get(record, "debugger") ?? Get(record, "path")))
+                .Append("</td><td>").Append(Encode(Get(record, "state") ?? Get(record, "enabled") ?? Get(record, "startModes")))
+                .Append("</td><td>").Append(Encode(Get(record, "triggerTypes") ?? FormatPeSignals(record) ?? Get(record, "yaraMatches"))).Append("</td></tr>");
         }
 
         builder.Append("</tbody></table></div></details>");
@@ -310,13 +318,14 @@ public static class HtmlReportRenderer
             .Append(files.Length.ToString(CultureInfo.InvariantCulture)).Append(")</span></summary>");
         if (files.Length > 0)
         {
-            builder.Append("<div class=\"scroll\"><table><thead><tr><th>Path</th><th>Referenced by</th><th>Signature</th><th>Entropy</th><th>YARA</th><th>Stable</th><th>SHA-256</th><th>Error</th></tr></thead><tbody>");
+            builder.Append("<div class=\"scroll\"><table><thead><tr><th>Path</th><th>Referenced by</th><th>Signature</th><th>Entropy</th><th>PE signals</th><th>YARA</th><th>Stable</th><th>SHA-256</th><th>Error</th></tr></thead><tbody>");
             foreach (var record in files.OrderBy(record => Get(record, "executablePath") ?? string.Empty, StringComparer.OrdinalIgnoreCase))
             {
                 builder.Append("<tr><td class=\"mono\">").Append(Encode(Get(record, "executablePath")))
                     .Append("</td><td>").Append(Encode(Get(record, "processNames")))
-                    .Append("</td><td>").Append(Encode(Get(record, "authenticodeStatus")))
+                    .Append("</td><td>").Append(Encode(FormatSignature(record)))
                     .Append("</td><td>").Append(Encode(Get(record, "entropyBitsPerByte")))
+                    .Append("</td><td>").Append(Encode(FormatPeSignals(record)))
                     .Append("</td><td>").Append(Encode(Get(record, "yaraMatches") ?? Get(record, "yaraStatus")))
                     .Append("</td><td>").Append(Encode(Get(record, "identityStableDuringInspection")))
                     .Append("</td><td class=\"mono\">").Append(Encode(Get(record, "sha256")))
@@ -383,8 +392,9 @@ public static class HtmlReportRenderer
     {
         "process.snapshot" => $"Process {Get(record, "name")} (PID {Get(record, "processId")})",
         "execution.bam" => $"BAM entry for {Get(record, "executablePath")}",
-        "execution.prefetch" => $"Prefetch metadata for {Get(record, "prefetchFile")}",
+        "execution.prefetch" => $"Prefetch run for {Get(record, "executableName") ?? Get(record, "prefetchFile")}",
         "execution.amcache" => $"Amcache inventory entry for {Get(record, "executablePath") ?? Get(record, "fileName")}",
+        "execution.usn_executable_change" => $"NTFS change for {Get(record, "fileName")}",
         "event.service_install" => $"Service installation: {Get(record, "serviceName")}",
         "event.code_integrity" => $"Code Integrity event {Get(record, "eventId")}",
         "event.application_crash" => $"Application crash: {Get(record, "applicationName")}",
@@ -396,8 +406,9 @@ public static class HtmlReportRenderer
     private static string? ExecutionSubject(EvidenceRecord record) => record.Kind switch
     {
         "execution.bam" => Get(record, "executablePath"),
-        "execution.prefetch" => Get(record, "prefetchFile"),
+        "execution.prefetch" => $"{Get(record, "executableName") ?? Get(record, "prefetchFile")} · run count {Get(record, "runCount")}",
         "execution.amcache" => Get(record, "executablePath") ?? Get(record, "fileName"),
+        "execution.usn_executable_change" => $"{Get(record, "fileName")} · {Get(record, "reasons")} · {Get(record, "sequence")}",
         "event.service_install" => $"{Get(record, "serviceName")} · {Get(record, "imagePath")}",
         "event.code_integrity" => $"Event {Get(record, "eventId")}",
         "event.application_crash" => $"{Get(record, "applicationName")} · {Get(record, "applicationPath")}",
@@ -406,7 +417,30 @@ public static class HtmlReportRenderer
     };
 
     private static string? PersistenceName(EvidenceRecord record) =>
-        Get(record, "taskPath") ?? Get(record, "name") ?? Get(record, "entryName");
+        Get(record, "taskPath") ?? Get(record, "name") ?? Get(record, "entryName")
+        ?? Get(record, "referenceNames") ?? Get(record, "fileName") ?? Get(record, "imageName");
+
+    private static string? FormatPeSignals(EvidenceRecord record)
+    {
+        var parts = new[]
+        {
+            Get(record, "peWritableExecutableSectionCount") is { } writable && writable != "0" ? $"RWX={writable}" : null,
+            Get(record, "peSuspiciousSectionNames") is { Length: > 0 } sections ? $"sections={sections}" : null,
+            Get(record, "peImportRiskClusters") is { Length: > 0 } clusters ? $"imports={clusters}" : null,
+            Get(record, "peOverlaySizeBytes") is { } overlay && overlay != "0"
+                ? $"overlay={overlay}B/H={Get(record, "peOverlayEntropyBitsPerByte") ?? "n/a"}"
+                : null,
+        };
+        var value = string.Join("; ", parts.Where(part => !string.IsNullOrWhiteSpace(part)));
+        return value.Length == 0 ? null : value;
+    }
+
+    private static string? FormatSignature(EvidenceRecord record)
+    {
+        var status = Get(record, "authenticodeStatus");
+        var signer = Get(record, "authenticodeSignerSubject");
+        return string.IsNullOrWhiteSpace(signer) ? status : $"{status} · {signer}";
+    }
 
     private static string StatusBadge(string? status) => status switch
     {

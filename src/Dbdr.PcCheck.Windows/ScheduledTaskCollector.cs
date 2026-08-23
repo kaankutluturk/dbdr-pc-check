@@ -9,14 +9,17 @@ namespace Dbdr.PcCheck.Windows;
 
 public sealed class ScheduledTaskCollector(
     PathRedactor redactor,
-    string? taskDirectory = null) : IEvidenceCollector
+    string? taskDirectory = null,
+    IExecutableFileInspector? fileInspector = null) : IEvidenceCollector
 {
+    public const int MaximumTaskDefinitions = 5_000;
+    public const long MaximumTaskDefinitionBytes = 4L * 1024 * 1024;
     private readonly string _taskDirectory = taskDirectory
         ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "System32", "Tasks");
 
     public string Name => "scheduled-tasks";
 
-    public Task<ModuleResult> CollectAsync(
+    public async Task<ModuleResult> CollectAsync(
         CollectionContext context,
         IProgress<CollectionProgress>? progress,
         CancellationToken cancellationToken)
@@ -24,6 +27,7 @@ public sealed class ScheduledTaskCollector(
         var stopwatch = Stopwatch.StartNew();
         var records = new List<EvidenceRecord>();
         var warnings = new List<string>();
+        var binaryReferences = new List<ScheduledTaskBinaryReference>();
         var status = "available";
         string? detail = null;
 
@@ -38,12 +42,22 @@ public sealed class ScheduledTaskCollector(
         {
             try
             {
-                foreach (var path in Directory.EnumerateFiles(_taskDirectory, "*", SearchOption.AllDirectories))
+                var paths = Directory.EnumerateFiles(_taskDirectory, "*", SearchOption.AllDirectories)
+                    .Take(MaximumTaskDefinitions + 1)
+                    .ToArray();
+                foreach (var path in paths.Take(MaximumTaskDefinitions))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     try
                     {
-                        records.Add(ParseTask(path));
+                        var parsed = ParseTask(path);
+                        records.Add(parsed.Record);
+                        if (parsed.ResolvedExecutablePath is not null)
+                        {
+                            binaryReferences.Add(new ScheduledTaskBinaryReference(
+                                parsed.TaskPath,
+                                parsed.ResolvedExecutablePath));
+                        }
                     }
                     catch (Exception exception) when (exception is IOException
                         or UnauthorizedAccessException
@@ -54,6 +68,11 @@ public sealed class ScheduledTaskCollector(
                         var taskPath = Path.GetRelativePath(_taskDirectory, path);
                         warnings.Add($"{taskPath}: {exception.GetType().Name}");
                     }
+                }
+
+                if (paths.Length > MaximumTaskDefinitions)
+                {
+                    warnings.Add($"Scheduled task enumeration was capped at {MaximumTaskDefinitions.ToString(CultureInfo.InvariantCulture)} definitions.");
                 }
 
                 if (records.Count == 0)
@@ -72,6 +91,16 @@ public sealed class ScheduledTaskCollector(
             }
         }
 
+        if (fileInspector is not null && binaryReferences.Count > 0)
+        {
+            await CollectBinaryEvidenceAsync(
+                binaryReferences,
+                records,
+                warnings,
+                progress,
+                cancellationToken).ConfigureAwait(false);
+        }
+
         records.Add(new EvidenceRecord(
             Name,
             "coverage.source",
@@ -87,22 +116,30 @@ public sealed class ScheduledTaskCollector(
             }));
 
         stopwatch.Stop();
-        return Task.FromResult(new ModuleResult(Name, true, stopwatch.Elapsed, records, warnings, []));
+        return new ModuleResult(Name, true, stopwatch.Elapsed, records, warnings, []);
     }
 
-    private EvidenceRecord ParseTask(string path)
+    private ParsedScheduledTask ParseTask(string path)
     {
+        var file = new FileInfo(path);
+        file.Refresh();
+        if (file.Length > MaximumTaskDefinitionBytes)
+        {
+            throw new InvalidDataException("The scheduled task definition exceeds the 4 MiB parser limit.");
+        }
+
         var settings = new XmlReaderSettings
         {
             DtdProcessing = DtdProcessing.Prohibit,
             XmlResolver = null,
+            MaxCharactersInDocument = MaximumTaskDefinitionBytes,
+            MaxCharactersFromEntities = 0,
         };
         using var reader = XmlReader.Create(path, settings);
         var document = XDocument.Load(reader, LoadOptions.None);
         var root = document.Root ?? throw new XmlException("Scheduled task XML has no root element.");
         var xmlNamespace = root.Name.Namespace;
         var taskPath = Path.GetRelativePath(_taskDirectory, path).Replace(Path.DirectorySeparatorChar, '\\');
-        var file = new FileInfo(path);
         var registrationDate = ParseTimestamp(root
             .Element(xmlNamespace + "RegistrationInfo")?
             .Element(xmlNamespace + "Date")?
@@ -121,21 +158,89 @@ public sealed class ScheduledTaskCollector(
             .OrderBy(name => name, StringComparer.Ordinal)
             .ToArray() ?? [];
 
-        return new EvidenceRecord(
-            Name,
-            "persistence.scheduled_task",
-            "Windows scheduled task XML",
-            DateTimeOffset.UtcNow,
-            registrationDate,
-            new Dictionary<string, string?>
+        return new ParsedScheduledTask(
+            new EvidenceRecord(
+                Name,
+                "persistence.scheduled_task",
+                "Windows scheduled task XML",
+                DateTimeOffset.UtcNow,
+                registrationDate,
+                new Dictionary<string, string?>
+                {
+                    ["taskPath"] = taskPath,
+                    ["command"] = redactor.Redact(command),
+                    ["enabled"] = ParseBoolean(settingsElement?.Element(xmlNamespace + "Enabled")?.Value, defaultValue: true),
+                    ["hidden"] = ParseBoolean(settingsElement?.Element(xmlNamespace + "Hidden")?.Value, defaultValue: false),
+                    ["triggerTypes"] = string.Join(", ", triggers),
+                    ["fileModifiedUtc"] = file.LastWriteTimeUtc.ToString("O", CultureInfo.InvariantCulture),
+                }),
+            taskPath,
+            ReferencedBinaryPathResolver.TryResolve(command));
+    }
+
+    private async Task CollectBinaryEvidenceAsync(
+        IEnumerable<ScheduledTaskBinaryReference> references,
+        ICollection<EvidenceRecord> records,
+        ICollection<string> warnings,
+        IProgress<CollectionProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        const int maximumBinaries = 256;
+        var groups = references
+            .GroupBy(reference => reference.ResolvedPath, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Take(maximumBinaries)
+            .ToArray();
+        var failures = 0;
+        for (var index = 0; index < groups.Length; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var group = groups[index];
+            progress?.Report(new CollectionProgress(
+                Name,
+                $"Inspecting scheduled-task binary {index + 1} of {groups.Length}",
+                index + 1,
+                groups.Length));
+            var evidence = await fileInspector!
+                .InspectAsync(group.Key, cancellationToken)
+                .ConfigureAwait(false);
+            if (evidence.Error is not null)
             {
-                ["taskPath"] = taskPath,
-                ["command"] = redactor.Redact(command),
-                ["enabled"] = ParseBoolean(settingsElement?.Element(xmlNamespace + "Enabled")?.Value, defaultValue: true),
-                ["hidden"] = ParseBoolean(settingsElement?.Element(xmlNamespace + "Hidden")?.Value, defaultValue: false),
-                ["triggerTypes"] = string.Join(", ", triggers),
-                ["fileModifiedUtc"] = file.LastWriteTimeUtc.ToString("O", CultureInfo.InvariantCulture),
-            });
+                failures++;
+            }
+
+            var fields = new Dictionary<string, string?>
+            {
+                ["executablePath"] = redactor.Redact(group.Key),
+                ["referenceKinds"] = "persistence.scheduled_task",
+                ["referenceNames"] = string.Join(
+                    ", ",
+                    group.Select(reference => reference.TaskPath)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)),
+            };
+            evidence.AddTo(fields);
+            records.Add(new EvidenceRecord(
+                Name,
+                "persistence.binary",
+                "resolved scheduled-task executable references",
+                DateTimeOffset.UtcNow,
+                null,
+                fields));
+        }
+
+        var totalUnique = references
+            .Select(reference => reference.ResolvedPath)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+        if (totalUnique > maximumBinaries)
+        {
+            warnings.Add($"Scheduled-task binary inspection was capped at {maximumBinaries.ToString(CultureInfo.InvariantCulture)} of {totalUnique.ToString(CultureInfo.InvariantCulture)} unique paths.");
+        }
+
+        if (failures > 0)
+        {
+            warnings.Add($"Scheduled-task binary inspection was incomplete for {failures.ToString(CultureInfo.InvariantCulture)} path(s). Review per-record errors.");
+        }
     }
 
     private static DateTimeOffset? ParseTimestamp(string? value)
@@ -154,4 +259,11 @@ public sealed class ScheduledTaskCollector(
 
     private static string ParseBoolean(string? value, bool defaultValue) =>
         (bool.TryParse(value, out var parsed) ? parsed : defaultValue) ? "true" : "false";
+
+    private sealed record ParsedScheduledTask(
+        EvidenceRecord Record,
+        string TaskPath,
+        string? ResolvedExecutablePath);
+
+    private sealed record ScheduledTaskBinaryReference(string TaskPath, string ResolvedPath);
 }

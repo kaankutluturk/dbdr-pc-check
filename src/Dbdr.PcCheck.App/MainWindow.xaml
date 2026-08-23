@@ -199,14 +199,14 @@
                                                   ToolTip="Processes, loaded DBD modules, hashes and signatures" />
                                         <CheckBox x:Name="ExecutionHistoryCheckBox" Content="Execution timeline" IsChecked="True"
                                                   Margin="0,10,0,0"
-                                                  ToolTip="BAM, Prefetch metadata, service installs and Code Integrity" />
+                                                  ToolTip="BAM, parsed Prefetch run times, service installs and Code Integrity" />
                                         <CheckBox x:Name="FileEnrichmentCheckBox" Content="Executable metadata" IsChecked="True"
                                                   Margin="0,10,0,0"
-                                                  ToolTip="Deduplicated SHA-256, signatures and version metadata" />
+                                                  ToolTip="Deduplicated SHA-256, WinVerifyTrust signer details, PE structure/imports and entropy" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="1">
                                         <CheckBox x:Name="PersistenceCheckBox" Content="Persistence inventory" IsChecked="True"
-                                                  ToolTip="Run keys, services and system drivers" />
+                                                  ToolTip="Autorun locations, services, configured/loaded drivers and referenced-binary triage" />
                                         <CheckBox x:Name="ScheduledTasksCheckBox" Content="Scheduled tasks" IsChecked="True"
                                                   Margin="0,10,0,0"
                                                   ToolTip="Task names, commands and trigger classes; arguments excluded" />
@@ -215,7 +215,7 @@
                                                   ToolTip="Device classes and model IDs; serial instance IDs excluded" />
                                         <CheckBox x:Name="ExtendedForensicsCheckBox" Content="Extended forensic metadata" IsChecked="False"
                                                   Margin="0,10,0,0"
-                                                  ToolTip="Opt-in Amcache executable inventory, crash metadata and PowerShell engine lifecycle; content and dumps excluded" />
+                                                  ToolTip="Opt-in Amcache inventory, crash/PowerShell lifecycle and bounded NTFS executable-change history; content and dumps excluded" />
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
@@ -225,7 +225,7 @@
                                   Header="Advanced triage · YARA and custom rules"
                                   Style="{StaticResource CompactExpanderStyle}">
                             <StackPanel>
-                                <TextBlock Text="Entropy is calculated during the existing hash read. YARA scans only executables already referenced by approved evidence."
+                                <TextBlock Text="Entropy is calculated during the existing hash read. YARA scans only approved referenced executables in a killable same-EXE worker with a per-file timeout."
                                            Margin="0,0,0,10" Style="{StaticResource MutedTextStyle}" />
                                 <CheckBox x:Name="YaraScanCheckBox" Content="Run embedded DBDR YARA baseline" IsChecked="True" />
                                 <Grid Margin="22,9,0,0">

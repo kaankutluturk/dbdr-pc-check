@@ -55,6 +55,13 @@ public sealed class HtmlReportRendererTests
                     "Neutral finding",
                     "test",
                     "process.snapshot"),
+                new EvidenceFinding(
+                    "F-002",
+                    FindingDisposition.Informational,
+                    "Unsigned observation",
+                    "Context only",
+                    "test",
+                    "file.metadata"),
             ],
         };
 
@@ -63,6 +70,9 @@ public sealed class HtmlReportRendererTests
         Assert.Contains("Review-window timeline", html, StringComparison.Ordinal);
         Assert.Contains("Live DBD state", html, StringComparison.Ordinal);
         Assert.Contains("Review queue", html, StringComparison.Ordinal);
+        Assert.Contains("Context observations", html, StringComparison.Ordinal);
+        Assert.Contains("Unsigned observation", html, StringComparison.Ordinal);
+        Assert.Contains("badge info\">information", html, StringComparison.Ordinal);
         Assert.Contains("Review &lt;this&gt;", html, StringComparison.Ordinal);
         Assert.Contains("&lt;script&gt;alert(1)&lt;/script&gt;", html, StringComparison.Ordinal);
         Assert.Contains("&lt;warning&gt;", html, StringComparison.Ordinal);

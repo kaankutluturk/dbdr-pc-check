@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using Dbdr.PcCheck.Core;
 
@@ -24,7 +25,10 @@ public sealed record PortableExecutableEvidence(
     string? OverlaySizeBytes,
     string? CertificateTablePresent,
     string? PdbFileName,
-    string? Error)
+    string? Error,
+    string? OverlayEntropyBitsPerByte = null,
+    string? OverlayEntropyClassification = null,
+    string? ImportFingerprintSha256 = null)
 {
     public static PortableExecutableEvidence NotPe { get; } =
         new("not-pe", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
@@ -51,6 +55,9 @@ public sealed record PortableExecutableEvidence(
         fields["peCertificateTablePresent"] = CertificateTablePresent;
         fields["pePdbFileName"] = PdbFileName;
         fields["peInspectionError"] = Error;
+        fields["peOverlayEntropyBitsPerByte"] = OverlayEntropyBitsPerByte;
+        fields["peOverlayEntropyClassification"] = OverlayEntropyClassification;
+        fields["peImportFingerprintSha256"] = ImportFingerprintSha256;
     }
 }
 
@@ -73,6 +80,7 @@ public sealed class PortableExecutableAnalyzer : IPortableExecutableAnalyzer
     private const int MaximumStringBytes = 512;
     private const int MaximumSectionEntropyBytes = 4 * 1024 * 1024;
     private const int MaximumTotalEntropyBytes = 32 * 1024 * 1024;
+    private const int MaximumOverlayEntropyBytes = 4 * 1024 * 1024;
 
     private const uint SectionExecute = 0x20000000;
     private const uint SectionRead = 0x40000000;
@@ -248,6 +256,7 @@ public sealed class PortableExecutableAnalyzer : IPortableExecutableAnalyzer
                 cancellationToken).ConfigureAwait(false);
             var suspiciousImports = FindSuspiciousImports(imports.ApiNames);
             var riskClusters = ClassifyRiskClusters(suspiciousImports);
+            var importFingerprint = CreateImportFingerprint(imports);
             var pdbFileName = await ReadPdbFileNameAsync(
                 stream,
                 sections,
@@ -263,6 +272,22 @@ public sealed class PortableExecutableAnalyzer : IPortableExecutableAnalyzer
                 : checked((long)securityDirectory.Rva + securityDirectory.Size);
             var overlayStart = Math.Min(stream.Length, Math.Max(rawImageEnd, certificateEnd));
             var overlaySize = Math.Max(0, stream.Length - overlayStart);
+            string? overlayEntropyText = null;
+            string? overlayEntropyClassification = null;
+            var overlaySampleSize = (int)Math.Min(overlaySize, MaximumOverlayEntropyBytes);
+            if (overlaySampleSize > 0)
+            {
+                var overlaySample = await ReadAtAsync(
+                    stream,
+                    overlayStart,
+                    overlaySampleSize,
+                    cancellationToken).ConfigureAwait(false);
+                var overlayEntropy = new BinaryEntropy();
+                overlayEntropy.Append(overlaySample);
+                var overlayEntropyValue = overlayEntropy.CalculateBitsPerByte();
+                overlayEntropyText = overlayEntropyValue.ToString("F4", CultureInfo.InvariantCulture);
+                overlayEntropyClassification = BinaryEntropy.Classify(overlayEntropyValue);
+            }
 
             return new PortableExecutableEvidence(
                 "valid",
@@ -283,7 +308,10 @@ public sealed class PortableExecutableAnalyzer : IPortableExecutableAnalyzer
                 overlaySize.ToString(CultureInfo.InvariantCulture),
                 (securityDirectory.Rva != 0 && securityDirectory.Size != 0).ToString().ToLowerInvariant(),
                 pdbFileName,
-                imports.Truncated ? "ImportEnumerationCapped" : null);
+                imports.Truncated ? "ImportEnumerationCapped" : null,
+                overlayEntropyText,
+                overlayEntropyClassification,
+                importFingerprint);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -311,7 +339,11 @@ public sealed class PortableExecutableAnalyzer : IPortableExecutableAnalyzer
         if (directory.Rva == 0 || directory.Size == 0
             || !TryMapRva(directory.Rva, sections, sizeOfHeaders, stream.Length, out var descriptorOffset))
         {
-            return new ImportEvidence(0, new HashSet<string>(StringComparer.OrdinalIgnoreCase), false);
+            return new ImportEvidence(
+                0,
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                false);
         }
 
         var apiNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -400,7 +432,7 @@ public sealed class PortableExecutableAnalyzer : IPortableExecutableAnalyzer
             }
         }
 
-        return new ImportEvidence(dllNames.Count, apiNames, truncated);
+        return new ImportEvidence(dllNames.Count, dllNames, apiNames, truncated);
     }
 
     private static async Task<string?> ReadPdbFileNameAsync(
@@ -554,6 +586,21 @@ public sealed class PortableExecutableAnalyzer : IPortableExecutableAnalyzer
         int Count(string name) => RiskApis[name].Count(imports.Contains);
     }
 
+    private static string? CreateImportFingerprint(ImportEvidence imports)
+    {
+        if (imports.DllNames.Count == 0 && imports.ApiNames.Count == 0)
+        {
+            return null;
+        }
+
+        var normalized = string.Join(
+            "\n",
+            imports.DllNames.Select(name => $"dll:{name.ToLowerInvariant()}")
+                .Concat(imports.ApiNames.Select(name => $"api:{name.ToLowerInvariant()}"))
+                .OrderBy(value => value, StringComparer.Ordinal));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(normalized)));
+    }
+
     private static async Task<byte[]> ReadAtAsync(
         FileStream stream,
         long offset,
@@ -668,5 +715,9 @@ public sealed class PortableExecutableAnalyzer : IPortableExecutableAnalyzer
 
     private readonly record struct DataDirectory(uint Rva, uint Size);
 
-    private sealed record ImportEvidence(int DllCount, IReadOnlySet<string> ApiNames, bool Truncated);
+    private sealed record ImportEvidence(
+        int DllCount,
+        IReadOnlySet<string> DllNames,
+        IReadOnlySet<string> ApiNames,
+        bool Truncated);
 }

@@ -2,9 +2,9 @@
 
 The product remains one portable executable with internal adapters and one normalized evidence model. Status labels are literal: `available` and `preview` have running code; `planned` is visible scope, not a fake tool; `privacy gated` conflicts with the current collection contract.
 
-| Requested capability | v0.3 status | Adapter direction | Boundary / blocker |
+| Requested capability | v0.5 status | Adapter direction | Boundary / blocker |
 | --- | --- | --- | --- |
-| WinPrefetch View | Preview | Upgrade existing Prefetch metadata source to a tested parser with parsed run timestamps and volume/device data | Timestamp semantics and compressed Prefetch variants need fixtures |
+| WinPrefetch View | Preview | Bounded parser emits executable identity and parsed run timestamps inside the case window | Add signed Windows fixture coverage for every supported compressed Prefetch version; volume/device data remains excluded by minimization |
 | Autoruns | Available | Existing Run keys, services, drivers and scheduled tasks under one searchable persistence view | Current state does not establish creation time |
 | String Explorer | Preview | Search normalized file metadata now; add bounded printable-string extraction only for already referenced files | Never read raw process memory or crawl arbitrary files |
 | USBDeview | Preview | Existing privacy-minimized PnP inventory, then time-bounded device-install artifact correlation | Unique serials and instance IDs remain excluded |
@@ -13,7 +13,7 @@ The product remains one portable executable with internal adapters and one norma
 | Paths Parser | Planned | Cross-source path correlation over redacted normalized evidence; later LNK/Jump List review | Personal recent-file content needs separate approval |
 | MFT Explorer | Planned | Read-only, time-bounded NTFS parser with strict caps and redaction | Raw-volume access, scale, timestamp semantics and recovery records need tests |
 | Kernel Live Dump | Privacy gated | None in this suite | Kernel dumps can contain user-mode pages and violate the no-memory boundary |
-| Journal Trace | Planned | Read-only `$UsnJrnl:$J` parser with explicit journal-ID and range coverage | A missing/rotated journal is a coverage gap, never evasion proof |
+| Journal Trace | Preview | Read-only bounded USN journal tail for execution-capable leaf filenames and change sequences | No full path reconstruction or file-reference serialization; a missing/rotated/capped journal is a coverage gap, never evasion proof |
 | Crashed File Viewer | Preview | Opt-in Application Error event 1000 metadata and redacted executable identity | Messages, report IDs, dumps and memory-derived contents remain excluded |
 | Browsing History View | Privacy gated | None in this suite | Browser history is excluded |
 | Browser Downloads View | Privacy gated | None in this suite | Browser download records are excluded |
