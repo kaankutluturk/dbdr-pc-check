@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Security.Principal;
 using System.Windows;
 using System.Windows.Interop;
 using Dbdr.PcCheck.Core;
@@ -115,46 +114,6 @@ public partial class MainWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             return;
-        }
-
-        if (RequiresAdministratorForSelectedSources() && !IsAdministrator())
-        {
-            var elevationChoice = MessageBox.Show(
-                this,
-                "Some selected Windows sources require administrator access. Relaunch elevated for the strongest available coverage?\n\nYes: relaunch through the Windows UAC prompt (the current form resets).\nNo: continue now and record access failures as coverage gaps.",
-                "Administrator coverage",
-                MessageBoxButton.YesNoCancel,
-                MessageBoxImage.Information);
-            if (elevationChoice == MessageBoxResult.Cancel)
-            {
-                return;
-            }
-
-            if (elevationChoice == MessageBoxResult.Yes)
-            {
-                try
-                {
-                    var executablePath = Environment.ProcessPath
-                        ?? throw new InvalidOperationException("The executable path is unavailable.");
-                    Process.Start(new ProcessStartInfo(executablePath)
-                    {
-                        UseShellExecute = true,
-                        Verb = "runas",
-                    });
-                    Application.Current.Shutdown();
-                }
-                catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException)
-                {
-                    MessageBox.Show(
-                        this,
-                        $"Windows did not elevate the collector ({exception.GetType().Name}). No collection has started.",
-                        "Elevation cancelled",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
-                }
-
-                return;
-            }
         }
 
         SetRunningState(true);
@@ -523,19 +482,6 @@ public partial class MainWindow : Window
 
     private static string FormatUtc(DateTimeOffset value) =>
         value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
-
-    private bool RequiresAdministratorForSelectedSources() =>
-        ExecutionHistoryCheckBox.IsChecked == true
-        || PersistenceCheckBox.IsChecked == true
-        || ScheduledTasksCheckBox.IsChecked == true
-        || DeviceInventoryCheckBox.IsChecked == true
-        || ExtendedForensicsCheckBox.IsChecked == true;
-
-    private static bool IsAdministrator()
-    {
-        using var identity = WindowsIdentity.GetCurrent();
-        return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
-    }
 
     [DllImport("dwmapi.dll", PreserveSig = true)]
     private static extern int DwmSetWindowAttribute(

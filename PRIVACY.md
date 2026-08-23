@@ -43,6 +43,8 @@ Executable paths, installed-application inventory, crash facts and lifecycle tim
 
 The extended metadata option is off by default. Selecting it does not authorize browser reconstruction, credential collection, memory capture or unrelated file review. A source observation identifies an artifact that requires interpretation; it does not by itself prove cheating, account ownership or a subscription.
 
+The packaged application requests administrator elevation through its Windows manifest on every launch. Declining the UAC prompt exits before the interface or collection starts. An elevated token improves access to approved Windows evidence sources; it does not start collection, expand the documented evidence boundary or replace the in-app case scope and explicit authorization checkbox.
+
 ## Explicit exclusions
 
 The suite does not collect:

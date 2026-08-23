@@ -39,10 +39,14 @@ See [PRIVACY.md](PRIVACY.md), [the module roadmap](docs/module-roadmap.md), [evi
 
 ## Build
 
-Requirements:
+Runtime requirements:
 
 - Windows 10 or Windows 11, x64
-- .NET 10 SDK
+- Administrator approval through the Windows UAC prompt on every launch
+
+The packaged application is self-contained and does not require a separate .NET installation. It embeds `requireAdministrator`; declining the UAC prompt exits before the UI or any collection starts. Elevation improves source coverage but does not replace the in-app case scope and explicit authorization checkbox.
+
+Build requirement: .NET 10 SDK.
 
 ```powershell
 dotnet restore .\DbdrPcCheck.slnx

@@ -28,6 +28,8 @@ The cached process provider ensures that process facts are not recollected after
 
 The release target is a self-contained `win-x64` single-file executable. It does not install a service or driver, write an uninstaller entry or persist settings. The .NET single-file host may extract native libyara components to the runtime extraction area while the app is running. The embedded baseline rule file is materialized in a unique temporary directory, hashed, compiled and removed when the collection finishes. An operator-selected custom rule file remains in place and its contents are not exported.
 
+The executable manifest requires administrator elevation before the WPF application starts. Elevation improves access to approved read-only sources but does not bypass the in-app authorization gate or change module scope. Cancelling UAC prevents the process from starting.
+
 ## Search contract
 
 The module catalog searches names, categories, capabilities, boundaries and evidence-kind aliases. The evidence explorer searches normalized record metadata and field keys/values, with a second scope filter for one module, source or record kind. It does not reopen the raw Windows sources and therefore cannot silently broaden collection. The extended forensic metadata group is off by default and contributes only normalized Amcache executable inventory, Application Error crash metadata and PowerShell engine/provider lifecycle metadata.

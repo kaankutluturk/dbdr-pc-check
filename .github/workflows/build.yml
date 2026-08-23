@@ -53,6 +53,26 @@ jobs:
             throw "Portable publish must contain exactly one DBDR.PcCheck.exe file."
           }
 
+      - name: Verify administrator manifest
+        shell: pwsh
+        run: |
+          $mt = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter mt.exe -Recurse |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if ($null -eq $mt) {
+            throw "Windows Manifest Tool (mt.exe) was not found."
+          }
+          $embeddedManifest = Join-Path $env:RUNNER_TEMP "dbdr-embedded.manifest"
+          & $mt.FullName -nologo "-inputresource:.\artifacts\win-x64\DBDR.PcCheck.exe;#1" "-out:$embeddedManifest"
+          if ($LASTEXITCODE -ne 0) {
+            throw "The packaged application manifest could not be extracted."
+          }
+          [xml]$manifest = Get-Content $embeddedManifest -Raw
+          $executionLevel = $manifest.SelectSingleNode("//*[local-name()='requestedExecutionLevel']")
+          if ($executionLevel.level -ne "requireAdministrator") {
+            throw "The packaged application does not embed requireAdministrator."
+          }
+
       - name: Launch smoke test
         shell: pwsh
         run: |

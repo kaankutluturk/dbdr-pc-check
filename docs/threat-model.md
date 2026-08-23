@@ -23,6 +23,8 @@
 
 The suite runs inside the checked Windows installation. A sufficiently privileged adversary can manipulate APIs, files, registry results, logs and timestamps. The SHA-256 manifest detects changes after packaging but does not prove that Windows supplied truthful evidence.
 
+The packaged suite intentionally runs with an elevated token. A compromised release, native dependency, parser or custom rule path would therefore have high impact even though the intended collectors are read-only. Production use depends on Authenticode signing, reviewable build provenance, bounded hostile-input parsers and rules obtained from a trusted case workflow.
+
 The process snapshot is cached before slower module/file inspection. This reduces but cannot eliminate process exit, PID reuse, path replacement and time-of-check/time-of-use races. Basic file identity is compared before and after hashing, but a privileged hostile system can still deceive the collector.
 
 ## Source-specific limitations
