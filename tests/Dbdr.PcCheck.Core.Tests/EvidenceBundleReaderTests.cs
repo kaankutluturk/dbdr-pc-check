@@ -101,7 +101,7 @@ public sealed class EvidenceBundleReaderTests
                 CancellationToken.None);
 
             Assert.Equal(".dbdr", Path.GetExtension(path));
-            var missingPassphrase = await Assert.ThrowsAsync<InvalidDataException>(
+            var missingPassphrase = await Assert.ThrowsAsync<EvidenceBundlePassphraseRequiredException>(
                 () => new EvidenceBundleReader().ReadAsync(path, CancellationToken.None));
             Assert.Contains("requires its case passphrase", missingPassphrase.Message, StringComparison.Ordinal);
 
