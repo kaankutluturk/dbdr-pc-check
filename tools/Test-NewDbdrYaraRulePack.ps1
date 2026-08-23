@@ -7,6 +7,7 @@ $ErrorActionPreference = 'Stop'
 $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) ("DBDR-YaraPackTest-" + [Guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($temporaryRoot) | Out-Null
 $key = $null
+$verificationKey = $null
 $archive = $null
 try {
     $rulesPath = Join-Path $temporaryRoot 'rules.yar'
@@ -85,7 +86,20 @@ try {
         $payloadStream.Dispose()
     }
 
-    if (-not $key.VerifyData(
+    $verificationKey = [Security.Cryptography.ECDsa]::Create()
+    $publicKeyBytes = [Convert]::FromBase64String($result.PublicKeySpkiBase64)
+    if (-not [Security.Cryptography.CryptographicOperations]::FixedTimeEquals(
+            $publicKeyBytes,
+            $key.ExportSubjectPublicKeyInfo())) {
+        throw 'Rule-pack signer returned a public key that differs from the supplied private key.'
+    }
+    $bytesRead = 0
+    $verificationKey.ImportSubjectPublicKeyInfo($publicKeyBytes, [ref]$bytesRead)
+    if ($bytesRead -ne $publicKeyBytes.Length -or $verificationKey.KeySize -ne 256) {
+        throw 'Rule-pack signer did not return a valid P-256 public key.'
+    }
+
+    if (-not $verificationKey.VerifyData(
             $payload,
             $signature,
             [Security.Cryptography.HashAlgorithmName]::SHA256,
@@ -101,6 +115,9 @@ finally {
     }
     if ($null -ne $key) {
         $key.Dispose()
+    }
+    if ($null -ne $verificationKey) {
+        $verificationKey.Dispose()
     }
     if ([IO.Directory]::Exists($temporaryRoot)) {
         [IO.Directory]::Delete($temporaryRoot, $true)
