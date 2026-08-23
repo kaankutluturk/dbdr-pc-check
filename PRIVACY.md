@@ -16,7 +16,7 @@ DBDR Evidence Suite creates a proportionate system-evidence snapshot for an auth
 - Running process name, process ID, parent process ID, session ID, creation time and redacted executable path where Windows exposes it.
 - For accessible executable files already referenced by approved process, module, persistence or task sources: redacted path, size, timestamps, SHA-256, version metadata, WinVerifyTrust status/mode, embedded signer display name/issuer/certificate thumbprint/validity interval where exposed, Shannon entropy and whether basic identity remained stable during inspection. Whole-file inspection has a 2 GiB safety ceiling. Running-process enrichment is capped at 1,024 unique paths, prioritizing DBD and user-writable locations; caps are explicit gaps.
 - For that same bounded executable set: hostile-input-bounded PE metadata including architecture, subsystem, managed status, untrusted linker timestamp, section names/permissions/sampled entropy, writable+executable section count, selected import API names/risk-cluster labels and a SHA-256 fingerprint of the bounded normalized import set, overlay size/sampled entropy, certificate-table presence and PDB filename only. Full import sets, full PDB paths and arbitrary binary strings are excluded.
-- For that same bounded executable set: YARA scan status, up to 256 matching rule identifiers, truncation state, ruleset labels, ruleset SHA-256 and the enforced file-size ceiling. Matched byte content, offsets and file copies are excluded. An optional self-contained custom rule file is read in place, capped at 4 MiB and not copied into the bundle; include directives are rejected. Scans run in a killable instance of the same executable with a per-file timeout.
+- For that same bounded executable set: YARA scan status, up to 256 matching rule identifiers, truncation state, ruleset labels, trust labels, ruleset SHA-256 and the enforced file-size ceiling. Matched byte content, offsets and file copies are excluded. An optional self-contained custom rule file is read in place, capped at 4 MiB and labeled unverified; include directives are rejected. An offline `.dbdrrules` pack is accepted only after its exact layout, hash, validity, analysis-profile binding and ECDSA P-256/SHA-256 signature verify against a public key embedded at build time. Rule contents, pack manifests and signatures are not copied into the bundle. Scans run in a killable instance of the same executable with a per-file timeout.
 - For running processes whose name contains `DeadByDaylight`: file-backed module name and redacted path plus the same file metadata where accessible.
 - Time-bounded BAM registry observations.
 - Time-bounded parsed Prefetch executable name, version, run count and last-run FILETIMEs. Parsing is local and bounded; referenced-file lists, directory lists, volume identifiers and raw Prefetch bytes are not serialized.
@@ -64,7 +64,7 @@ The suite does not collect:
 - module base addresses;
 - unique device-instance identifiers or serial-number suffixes;
 - copies of executables, DLLs or personal files; or
-- YARA matched bytes, offsets or custom rule contents; or
+- YARA matched bytes, offsets, custom rule contents, signed-pack manifests or signed-pack signatures; or
 - automatic network reputation lookups containing player evidence.
 
 ## Local handling

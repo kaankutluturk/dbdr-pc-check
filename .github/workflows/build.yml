@@ -34,6 +34,10 @@ jobs:
       - name: Test
         run: dotnet test .\DbdrPcCheck.slnx --configuration Release --no-build --logger "trx;LogFileName=test-results.trx"
 
+      - name: Smoke test offline YARA rule-pack signer
+        shell: pwsh
+        run: .\tools\Test-NewDbdrYaraRulePack.ps1
+
       - name: Validate detection profile
         run: >-
           dotnet run --project .\src\Dbdr.PcCheck.Validation\Dbdr.PcCheck.Validation.csproj
@@ -53,14 +57,28 @@ jobs:
           retention-days: 30
 
       - name: Publish single-file development build
-        run: >-
-          dotnet publish .\src\Dbdr.PcCheck.App\Dbdr.PcCheck.App.csproj
-          --configuration Release
-          --runtime win-x64
-          --self-contained true
-          -p:PublishSingleFile=true
-          -p:IncludeNativeLibrariesForSelfExtract=true
-          --output .\artifacts\win-x64
+        shell: pwsh
+        env:
+          DBDR_YARA_KEY_ID: ${{ vars.YARA_RULE_PACK_KEY_ID }}
+          DBDR_YARA_PUBLIC_KEY: ${{ vars.YARA_RULE_PACK_PUBLIC_KEY_SPKI_BASE64 }}
+        run: |
+          $hasKeyId = -not [string]::IsNullOrWhiteSpace($env:DBDR_YARA_KEY_ID)
+          $hasPublicKey = -not [string]::IsNullOrWhiteSpace($env:DBDR_YARA_PUBLIC_KEY)
+          if ($hasKeyId -ne $hasPublicKey) {
+            throw "YARA_RULE_PACK_KEY_ID and YARA_RULE_PACK_PUBLIC_KEY_SPKI_BASE64 must be configured together."
+          }
+          if ($hasKeyId -and $env:DBDR_YARA_KEY_ID -notmatch '^[A-Za-z0-9_.-]{1,64}$') {
+            throw "YARA_RULE_PACK_KEY_ID has an invalid format."
+          }
+          dotnet publish .\src\Dbdr.PcCheck.App\Dbdr.PcCheck.App.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            "-p:DbdrYaraRulePackKeyId=$env:DBDR_YARA_KEY_ID" `
+            "-p:DbdrYaraRulePackPublicKey=$env:DBDR_YARA_PUBLIC_KEY" `
+            --output .\artifacts\win-x64
 
       - name: Verify portable single-file output
         shell: pwsh

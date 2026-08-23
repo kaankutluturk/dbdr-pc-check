@@ -1,4 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup Condition="'$(DbdrYaraRulePackKeyId)' != '' and '$(DbdrYaraRulePackPublicKey)' != ''">
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>DbdrYaraRulePackPublicKey.$(DbdrYaraRulePackKeyId)</_Parameter1>
+      <_Parameter2>$(DbdrYaraRulePackPublicKey)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Dbdr.PcCheck.Core\Dbdr.PcCheck.Core.csproj" />
   </ItemGroup>

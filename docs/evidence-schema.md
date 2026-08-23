@@ -61,14 +61,15 @@ Findings are deterministic summaries of collected evidence and collection failur
 - `authenticodeStatus`, `authenticodeVerificationMode`, and embedded-signer subject, issuer, certificate thumbprint and validity interval when Windows exposes them;
 - `yaraStatus` (`disabled`, `no-match`, `matched`, `skipped-size-limit` or `unavailable`);
 - `yaraMatchCount` and `yaraMatches`, containing rule identifiers only;
-- `yaraRulesets` and `yaraRulesetSha256`, which identify the rule material used; and
+- `yaraRulesets` and `yaraRulesetSha256`, which identify the rule material used;
+- `yaraRulesetTrust`, mapping each ruleset to `embedded`, `operator-supplied-unverified` or `ecdsa-p256-sha256-verified`; and
 - `yaraError`, containing only an exception type when the scan was unavailable; and
 - `yaraMaximumFileSizeBytes`, identifying the scan ceiling; and
 - `yaraMatchesTruncated`, identifying when the 256-rule-identifier reporting cap was reached.
 
 For PE files these records can also include `peStatus`, `peMachine`, `peFormat`, `peSubsystem`, `peIsManaged`, `peLinkerTimestampUtc`, `peLinkerTimestampBasis`, `peSectionCount`, `peSections`, `peHighEntropySectionCount`, `peWritableExecutableSectionCount`, `peSuspiciousSectionNames`, `peImportDllCount`, `peImportApiCount`, `peImportFingerprintSha256`, `peSuspiciousImports`, `peImportRiskClusters`, `peOverlaySizeBytes`, `peOverlayEntropyBitsPerByte`, `peOverlayEntropyClassification`, `peCertificateTablePresent`, `pePdbFileName` and `peInspectionError`. The import fingerprint hashes the bounded normalized DLL/API-name set for correlation without serializing the full set. Section entropy is sampled at no more than 4 MiB per section and 32 MiB total per file; overlay entropy is sampled at no more than 4 MiB. Import and section counts are capped. `peLinkerTimestampUtc` is explicitly untrusted linker metadata, not a file-system or execution time.
 
-The schema never stores YARA match bytes, offsets, custom rule contents or a copy of the scanned file. Production scans run in a killable instance of the same executable with a 20-second per-file timeout; cancellation or timeout terminates that helper. Entropy and YARA results are observations. The analysis profile creates a neutral review item for a YARA match or for the correlation of high entropy with a non-valid signature; neither is a verdict.
+The schema never stores YARA match bytes, offsets, custom rule contents, signed-pack manifests/signatures or a copy of the scanned file. A verified pack is identified as `signed:{packId}@{version}` after exact-container, expiry, profile, SHA-256 and ECDSA P-256/SHA-256 checks; raw operator rules remain explicitly unverified. Production scans run in a killable instance of the same executable with a 20-second per-file timeout; cancellation or timeout terminates that helper. Entropy and YARA results are observations. The analysis profile creates a neutral review item for a YARA match or for the correlation of high entropy with a non-valid signature; neither is a verdict.
 
 ## Extended forensic metadata
 

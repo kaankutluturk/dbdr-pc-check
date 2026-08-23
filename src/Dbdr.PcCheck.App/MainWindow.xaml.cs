@@ -108,16 +108,25 @@ public partial class MainWindow : Window
 
         var customYaraRules = YaraRulesPathTextBox.Text.Trim();
         if (YaraScanCheckBox.IsChecked == true
-            && customYaraRules.Length > 0
-            && !File.Exists(customYaraRules))
+            && customYaraRules.Length > 0)
         {
-            MessageBox.Show(
-                this,
-                "The selected custom YARA rule file does not exist.",
-                "Invalid YARA rules",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-            return;
+            try
+            {
+                customYaraRules = YaraFileScanner.ValidateCustomRulePath(customYaraRules);
+            }
+            catch (Exception exception)
+            {
+                var detail = exception is InvalidDataException or FileNotFoundException
+                    ? exception.Message
+                    : $"The selected rule material could not be read ({exception.GetType().Name}).";
+                MessageBox.Show(
+                    this,
+                    detail,
+                    "Invalid YARA rules",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
         }
 
         var bundlePassphrase = BundlePassphrasePasswordBox.Password;
@@ -419,8 +428,8 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Select optional custom YARA rules",
-            Filter = "YARA rules (*.yar;*.yara)|*.yar;*.yara|All files (*.*)|*.*",
+            Title = "Select optional signed pack or custom YARA rules",
+            Filter = "Signed DBDR rule packs (*.dbdrrules)|*.dbdrrules|YARA rules (*.yar;*.yara)|*.yar;*.yara|All supported rules (*.dbdrrules;*.yar;*.yara)|*.dbdrrules;*.yar;*.yara",
             CheckFileExists = true,
             Multiselect = false,
         };

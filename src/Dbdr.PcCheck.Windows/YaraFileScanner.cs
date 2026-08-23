@@ -24,10 +24,22 @@ public sealed record YaraScanEvidence(
             ", ",
             RulesetHashes.OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => $"{pair.Key}={pair.Value}"));
+        fields["yaraRulesetTrust"] = string.Join(
+            ", ",
+            RulesetHashes.Keys.Order(StringComparer.Ordinal)
+                .Select(id => $"{id}={TrustLabel(id)}"));
         fields["yaraError"] = Error;
         fields["yaraMaximumFileSizeBytes"] = MaximumFileSizeBytes;
         fields["yaraMatchesTruncated"] = MatchesTruncated.ToString().ToLowerInvariant();
     }
+
+    private static string TrustLabel(string id) => id switch
+    {
+        "baseline" => "embedded",
+        "custom" => "operator-supplied-unverified",
+        _ when id.StartsWith(YaraRulePackVerifier.RuleSetPrefix, StringComparison.Ordinal) => "ecdsa-p256-sha256-verified",
+        _ => "unknown",
+    };
 }
 
 public interface IYaraFileScanner
@@ -65,7 +77,17 @@ public sealed class YaraFileScanner : IYaraFileScanner, IDisposable
             if (!string.IsNullOrWhiteSpace(customRulePath))
             {
                 var resolvedCustomPath = ValidateCustomRulePath(customRulePath);
-                ruleSets.Add(Compile("custom", resolvedCustomPath));
+                if (IsRulePackPath(resolvedCustomPath))
+                {
+                    var pack = YaraRulePackVerifier.VerifyDefault(resolvedCustomPath);
+                    var verifiedRulesPath = Path.Combine(_temporaryDirectory, "verified-pack-rules.yar");
+                    File.WriteAllBytes(verifiedRulesPath, pack.Rules);
+                    ruleSets.Add(Compile(pack.RuleSetId, verifiedRulesPath));
+                }
+                else
+                {
+                    ruleSets.Add(Compile("custom", resolvedCustomPath));
+                }
             }
 
             _context = context;
@@ -98,7 +120,15 @@ public sealed class YaraFileScanner : IYaraFileScanner, IDisposable
         if (!string.IsNullOrWhiteSpace(customRulePath))
         {
             var resolvedCustomPath = ValidateCustomRulePath(customRulePath);
-            hashes["custom"] = HashFile(resolvedCustomPath);
+            if (IsRulePackPath(resolvedCustomPath))
+            {
+                var pack = YaraRulePackVerifier.VerifyDefault(resolvedCustomPath);
+                hashes[pack.RuleSetId] = pack.RulesSha256;
+            }
+            else
+            {
+                hashes["custom"] = HashFile(resolvedCustomPath);
+            }
         }
 
         return hashes;
@@ -118,7 +148,21 @@ public sealed class YaraFileScanner : IYaraFileScanner, IDisposable
             throw new InvalidDataException("The custom YARA rule file exceeds the 4 MiB safety limit.");
         }
 
-        RejectIncludes(resolvedCustomPath);
+        if (IsRulePackPath(resolvedCustomPath))
+        {
+            _ = YaraRulePackVerifier.VerifyDefault(resolvedCustomPath);
+            return resolvedCustomPath;
+        }
+
+        if (!IsRawRulePath(resolvedCustomPath))
+        {
+            throw new InvalidDataException("YARA rule material must use .dbdrrules, .yar or .yara.");
+        }
+
+        using var stream = new FileStream(resolvedCustomPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var output = new MemoryStream(capacity: checked((int)customRuleInfo.Length));
+        stream.CopyTo(output);
+        YaraRulePackVerifier.ValidateSelfContainedRules(output.ToArray());
         return resolvedCustomPath;
     }
 
@@ -253,16 +297,12 @@ public sealed class YaraFileScanner : IYaraFileScanner, IDisposable
         source.CopyTo(destination);
     }
 
-    private static void RejectIncludes(string path)
-    {
-        foreach (var line in File.ReadLines(path))
-        {
-            if (line.TrimStart().StartsWith("include", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidDataException("Custom YARA include directives are disabled; provide one self-contained rule file.");
-            }
-        }
-    }
+    private static bool IsRulePackPath(string path) =>
+        string.Equals(Path.GetExtension(path), ".dbdrrules", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsRawRulePath(string path) =>
+        string.Equals(Path.GetExtension(path), ".yar", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(Path.GetExtension(path), ".yara", StringComparison.OrdinalIgnoreCase);
 
     private void TryDeleteTemporaryDirectory()
     {

@@ -91,6 +91,7 @@ public sealed class IsolatedYaraFileScanner : IYaraFileScanner, IDisposable
             or InvalidDataException
             or JsonException
             or InvalidOperationException
+            or System.Security.Cryptography.CryptographicException
             or System.ComponentModel.Win32Exception
             or ObjectDisposedException)
         {
@@ -279,6 +280,7 @@ public static class YaraWorkerHost
             or UnauthorizedAccessException
             or ArgumentException
             or InvalidOperationException
+            or System.Security.Cryptography.CryptographicException
             or BadImageFormatException
             or DllNotFoundException
             or TypeInitializationException)

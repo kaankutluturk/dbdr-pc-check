@@ -33,6 +33,7 @@ public partial class App : Application
 
             if (_selfTestMode)
             {
+                _ = YaraRulePackVerifier.LoadEmbeddedTrustKeys();
                 var window = new MainWindow();
                 window.Close();
                 Shutdown(0);

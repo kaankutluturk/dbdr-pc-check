@@ -20,7 +20,7 @@ The product remains one portable executable with internal adapters and one norma
 | BAM Parser | Available | Existing time-bounded BAM adapter | Windows layout and retention vary |
 | Amcache Parser | Preview | Capped live registry adapter for executable application inventory with redacted paths | Current inventory is not execution proof; no locked-hive fallback yet |
 | SRUM Explorer | Preview | Opt-in `powercfg /srumutil` adapter retaining only in-window executable name, redacted path and timestamp, capped at 5,000 records | Native export is 64 MiB/60 s capped and immediately deleted; user IDs, network fields, usage amounts and unresolved identities are discarded |
-| YARA + entropy | Available | libyara 4.5.5, embedded baseline, optional custom rules and full-file Shannon entropy | Scans only already referenced files; matches are leads |
+| YARA + entropy | Available | libyara 4.5.5, embedded baseline, signed/versioned offline packs, optional explicitly unverified raw rules and full-file Shannon entropy | Scans only already referenced files; signed packs require a build-embedded public trust key; matches are leads |
 
 ## Integration rule
 

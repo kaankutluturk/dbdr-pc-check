@@ -2,7 +2,7 @@
 
 A consent-based, read-only Windows evidence suite for consistent and reviewable DBDR PC checks.
 
-> **Development status:** v0.5.0 hardens executable and driver triage with a bounded hostile-input PE parser, section entropy, writable+executable-section detection, import-risk clusters, expanded embedded YARA review rules, persistence-binary inspection, Windows code-integrity/security-posture context, authenticated encrypted case bundles, deterministic detection-profile validation and an actual packaged-app launch smoke test. It is not a cheat detector and must not be used as the sole basis for a moderation decision.
+> **Development status:** v0.5.0 hardens executable and driver triage with a bounded hostile-input PE parser, section entropy, writable+executable-section detection, import-risk clusters, expanded embedded YARA review rules, signed/versioned offline YARA-pack verification, persistence-binary inspection, Windows code-integrity/security-posture context, authenticated encrypted case bundles, deterministic detection-profile validation and an actual packaged-app launch smoke test. It is not a cheat detector and must not be used as the sole basis for a moderation decision.
 
 ## Product shape
 
@@ -36,7 +36,7 @@ Each collector is read-only, independently cancellable and failure-isolated. A f
 
 The suite does **not** upload evidence. It does not inspect browser history or downloads, chats, credentials, clipboard contents, screenshots, personal documents, PowerShell commands/scripts/history, crash dumps, raw process or kernel memory, or memory-derived strings. It does not terminate processes, modify services, install drivers, attach a debugger or clear logs.
 
-See [PRIVACY.md](PRIVACY.md), [the module roadmap](docs/module-roadmap.md), [evidence schema](docs/evidence-schema.md), [source matrix](docs/source-matrix.md), [architecture](docs/architecture.md), [detection validation](docs/detection-validation.md), [release signing](docs/signing.md) and [threat model](docs/threat-model.md).
+See [PRIVACY.md](PRIVACY.md), [the module roadmap](docs/module-roadmap.md), [evidence schema](docs/evidence-schema.md), [source matrix](docs/source-matrix.md), [architecture](docs/architecture.md), [detection validation](docs/detection-validation.md), [signed YARA rule packs](docs/yara-rule-packs.md), [release signing](docs/signing.md) and [threat model](docs/threat-model.md).
 
 ## Build
 
@@ -81,4 +81,4 @@ Every CI and signed-build path runs the versioned synthetic fixture corpus and p
 
 ## Module roadmap
 
-The requested WinPrefetch, Autoruns, String Explorer, USB, saved-file, PowerShell, path, MFT, kernel dump, journal, crash, browser, BAM, Amcache and SRUM capabilities are tracked individually in the in-app catalog and [module roadmap](docs/module-roadmap.md). Prefetch, PowerShell, crash, Amcache, bounded journal and minimized SRUM usage use real adapters with explicit caps; exact redacted-path correlation is available only when a binary also has an independent signature, YARA or PE-import signal. Browser collection and memory dumps remain excluded. Broader Windows source fixtures and signed rule distribution remain staged work.
+The requested WinPrefetch, Autoruns, String Explorer, USB, saved-file, PowerShell, path, MFT, kernel dump, journal, crash, browser, BAM, Amcache and SRUM capabilities are tracked individually in the in-app catalog and [module roadmap](docs/module-roadmap.md). Prefetch, PowerShell, crash, Amcache, bounded journal and minimized SRUM usage use real adapters with explicit caps; exact redacted-path correlation is available only when a binary also has an independent signature, YARA or PE-import signal. Browser collection and memory dumps remain excluded. Signed/versioned offline rule-pack validation is implemented; accepting production packs requires the operator to provision the approved public trust key at build time.

@@ -5,7 +5,7 @@
 1. **WPF suite shell** — case input, module selection, searchable module catalog, coverage dashboard, finding drill-down, scoped evidence explorer, authorization, activity and local output handling.
 2. **Collection orchestrator** — ordered, cancellable and failure-isolated execution of `IEvidenceCollector` modules.
 3. **Windows source adapters** — live state, execution history, persistence, scheduled tasks and devices.
-4. **Bounded binary triage** — the existing referenced-file read calculates SHA-256 and Shannon entropy; optional libyara scans use embedded and operator-selected rules without copying files.
+4. **Bounded binary triage** — the existing referenced-file read calculates SHA-256 and Shannon entropy; optional libyara scans use embedded, signed offline-pack or explicitly unverified operator rules without copying files.
 5. **Normalized evidence model and search** — source provenance plus separate collection/source timestamps and case-insensitive full-field filtering.
 6. **Neutral analyzer** — deterministic `needsReview` and `coverageGap` summaries; no verdict API.
 7. **Packaging/reporting** — JSON, offline HTML, diagnostics, privacy reminder and SHA-256 manifest.
@@ -26,7 +26,7 @@ The cached process provider ensures that process facts are not recollected after
 
 ## Portable packaging
 
-The release target is a self-contained `win-x64` single-file executable. It does not install a service or driver, write an uninstaller entry or persist settings. The .NET single-file host may extract native libyara components to the runtime extraction area while the app is running. The embedded baseline rule file is materialized in a unique temporary directory, hashed, compiled and removed when the collection finishes. An operator-selected custom rule file remains in place and its contents are not exported.
+The release target is a self-contained `win-x64` single-file executable. It does not install a service or driver, write an uninstaller entry or persist settings. The .NET single-file host may extract native libyara components to the runtime extraction area while the app is running. The embedded baseline rule file is materialized in a unique temporary directory, hashed, compiled and removed when the collection finishes. An operator-selected raw rule file remains in place and is labeled unverified. A `.dbdrrules` pack is bounded and verified before its rule bytes are materialized in that private temporary directory; only an embedded ECDSA P-256 public key is trusted, and no pack or rule contents are exported.
 
 New UI collections are exported as `.dbdr` containers: the complete manifest-bearing ZIP is encrypted in bounded chunks with AES-256-GCM and a PBKDF2-SHA256 passphrase-derived key. Reopening decrypts to a delete-on-close temporary stream, validates safe archive structure and caps, verifies every manifest entry, validates the schema and only then loads normalized evidence. The passphrase is not serialized and loss is unrecoverable. Legacy plaintext ZIP reopening remains available for migration.
 

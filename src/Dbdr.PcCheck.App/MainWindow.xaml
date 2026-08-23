@@ -248,7 +248,7 @@
                         </Border>
 
                         <Expander x:Name="AdvancedTriageExpander" Margin="0,10,0,0"
-                                  Header="Advanced triage · YARA and custom rules"
+                                  Header="Advanced triage · YARA and signed/custom rules"
                                   Style="{StaticResource CompactExpanderStyle}">
                             <StackPanel>
                                 <TextBlock Text="Entropy is calculated during the existing hash read. YARA scans only approved referenced executables in a killable same-EXE worker with a per-file timeout."
@@ -260,11 +260,11 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBox x:Name="YaraRulesPathTextBox"
-                                             ToolTip="Optional .yar or .yara file; rule contents are not copied into the evidence bundle" />
+                                             ToolTip="Optional signed .dbdrrules pack or unverified local .yar/.yara file; rule contents are not copied into the evidence bundle" />
                                     <Button x:Name="YaraRulesBrowseButton" Grid.Column="1" Content="Choose rules…"
                                             Margin="8,0,0,0" Click="YaraRulesBrowseButton_OnClick" />
                                 </Grid>
-                                <TextBlock Text="The bundle stores rule IDs and ruleset hashes only. Hits remain review leads."
+                                <TextBlock Text="Signed packs must match this build's embedded trust key and analysis profile. Raw custom rules are labeled unverified. The bundle stores identifiers and hashes only; hits remain review leads."
                                            Margin="22,7,0,0" FontSize="12" Foreground="{StaticResource TextQuiet}" />
                             </StackPanel>
                         </Expander>
