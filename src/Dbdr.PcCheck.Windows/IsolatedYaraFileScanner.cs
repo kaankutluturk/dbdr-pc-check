@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection;
 using System.Text.Json;
 
 namespace Dbdr.PcCheck.Windows;
@@ -137,7 +136,7 @@ public sealed class IsolatedYaraFileScanner : IYaraFileScanner, IDisposable
 
         if (string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet", StringComparison.OrdinalIgnoreCase))
         {
-            var entryAssemblyPath = Assembly.GetEntryAssembly()?.Location;
+            var entryAssemblyPath = Environment.GetCommandLineArgs().FirstOrDefault();
             if (string.IsNullOrWhiteSpace(entryAssemblyPath))
             {
                 throw new InvalidOperationException("The managed entry assembly path is unavailable.");
