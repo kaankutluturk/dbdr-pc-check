@@ -37,6 +37,7 @@ public static class UsnJournalRecordParser
             int fileNameOffsetOffset;
             int minimumHeaderSize;
             ReadOnlySpan<byte> fileReference;
+            string fileReferenceKey;
             if (majorVersion == 2)
             {
                 timestampOffset = 32;
@@ -45,6 +46,8 @@ public static class UsnJournalRecordParser
                 fileNameOffsetOffset = 58;
                 minimumHeaderSize = 60;
                 fileReference = record.Slice(8, 8);
+                fileReferenceKey = BinaryPrimitives.ReadUInt64LittleEndian(fileReference)
+                    .ToString("X16", CultureInfo.InvariantCulture);
             }
             else if (majorVersion == 3 && recordLength >= 76)
             {
@@ -54,6 +57,7 @@ public static class UsnJournalRecordParser
                 fileNameOffsetOffset = 74;
                 minimumHeaderSize = 76;
                 fileReference = record.Slice(8, 16);
+                fileReferenceKey = Convert.ToHexString(fileReference);
             }
             else
             {
@@ -85,7 +89,7 @@ public static class UsnJournalRecordParser
             }
 
             records.Add(new ParsedUsnRecord(
-                Convert.ToHexString(fileReference),
+                fileReferenceKey,
                 Encoding.Unicode.GetString(record.Slice(fileNameOffset, fileNameLength)),
                 timestamp,
                 BinaryPrimitives.ReadUInt32LittleEndian(record.Slice(reasonOffset, 4))));
