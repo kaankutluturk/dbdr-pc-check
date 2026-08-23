@@ -2,7 +2,7 @@
 
 ## Layers
 
-1. **WPF suite shell** — case input, module selection, searchable module catalog, scoped evidence explorer, authorization, activity and local output handling.
+1. **WPF suite shell** — case input, module selection, searchable module catalog, coverage dashboard, finding drill-down, scoped evidence explorer, authorization, activity and local output handling.
 2. **Collection orchestrator** — ordered, cancellable and failure-isolated execution of `IEvidenceCollector` modules.
 3. **Windows source adapters** — live state, execution history, persistence, scheduled tasks and devices.
 4. **Bounded binary triage** — the existing referenced-file read calculates SHA-256 and Shannon entropy; optional libyara scans use embedded and operator-selected rules without copying files.
@@ -34,7 +34,7 @@ The executable manifest requires administrator elevation before the WPF applicat
 
 ## Search contract
 
-The module catalog searches names, categories, capabilities, boundaries and evidence-kind aliases. The evidence explorer searches normalized record metadata and field keys/values, with a second scope filter for one module, source or record kind. It does not reopen the raw Windows sources and therefore cannot silently broaden collection. The extended forensic metadata group is off by default and contributes only normalized Amcache executable inventory, Application Error crash metadata and PowerShell engine/provider lifecycle metadata.
+The module catalog searches names, categories, capabilities, boundaries and evidence-kind aliases. The evidence explorer summarizes records, finding dispositions, completed modules and normalized `coverage.source` availability, then exposes the full neutral rationale for each finding. A finding can populate the existing module/source/kind scope without changing the collected data. Record search covers normalized metadata and field keys/values; it does not reopen raw Windows sources and therefore cannot silently broaden collection. The extended forensic metadata group is off by default and contributes only normalized Amcache executable inventory, Application Error crash metadata and PowerShell engine/provider lifecycle metadata.
 
 ## Extension contract
 

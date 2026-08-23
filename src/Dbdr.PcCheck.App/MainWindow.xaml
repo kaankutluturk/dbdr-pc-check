@@ -415,28 +415,157 @@
                             VerticalAlignment="Bottom" Style="{StaticResource CompactButtonStyle}"
                             Click="OpenEvidenceBundleButton_OnClick" />
                 </Grid>
-                <Grid Grid.Row="1" Margin="0,18,0,10">
+                <Grid Grid.Row="1" Margin="0,18,0,12">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1.6*" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="1.25*" />
                     </Grid.ColumnDefinitions>
-                    <StackPanel Margin="0,0,12,0">
-                        <TextBlock Text="Search evidence" Foreground="{StaticResource TextSecondary}" />
-                        <TextBox x:Name="EvidenceSearchTextBox" Margin="0,7,0,0"
-                                 TextChanged="EvidenceSearchTextBox_OnTextChanged" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="1">
-                        <TextBlock Text="Module / source scope" Foreground="{StaticResource TextSecondary}" />
-                        <TextBox x:Name="EvidenceModuleScopeTextBox" Margin="0,7,0,0"
-                                 ToolTip="Examples: bam, prefetch, devices, file.metadata"
-                                 TextChanged="EvidenceSearchTextBox_OnTextChanged" />
-                    </StackPanel>
+                    <Border Style="{StaticResource CardStyle}" Padding="14,11" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="RECORDS" Style="{StaticResource EyebrowStyle}" />
+                            <TextBlock x:Name="RecordsMetricTextBlock" Text="—" Margin="0,3,0,0" FontSize="22" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}" Padding="14,11" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="NEEDS REVIEW" Style="{StaticResource EyebrowStyle}" />
+                            <TextBlock x:Name="ReviewMetricTextBlock" Text="—" Margin="0,3,0,0" FontSize="22" FontWeight="SemiBold"
+                                       Foreground="{StaticResource Warning}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource CardStyle}" Padding="14,11" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="COVERAGE GAPS" Style="{StaticResource EyebrowStyle}" />
+                            <TextBlock x:Name="CoverageGapMetricTextBlock" Text="—" Margin="0,3,0,0" FontSize="22" FontWeight="SemiBold"
+                                       Foreground="{StaticResource Primary}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="3" Style="{StaticResource CardStyle}" Padding="14,11" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="MODULES COMPLETE" Style="{StaticResource EyebrowStyle}" />
+                            <TextBlock x:Name="ModuleCoverageMetricTextBlock" Text="—" Margin="0,3,0,0" FontSize="22" FontWeight="SemiBold" />
+                            <TextBlock x:Name="ModuleCoverageDetailTextBlock" Text="No case loaded" FontSize="10"
+                                       Foreground="{StaticResource TextQuiet}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="4" Style="{StaticResource CardStyle}" Padding="14,11">
+                        <StackPanel>
+                            <TextBlock Text="SOURCES AVAILABLE" Style="{StaticResource EyebrowStyle}" />
+                            <TextBlock x:Name="SourceCoverageMetricTextBlock" Text="—" Margin="0,3,0,0" FontSize="22" FontWeight="SemiBold" />
+                            <TextBlock x:Name="SourceCoverageDetailTextBlock" Text="No case loaded" FontSize="10"
+                                       Foreground="{StaticResource TextQuiet}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Border>
                 </Grid>
-                <Border Grid.Row="2" Style="{StaticResource CardStyle}" Padding="0">
-                    <ListBox ItemsSource="{Binding EvidenceSearchResults}" Padding="16,12"
-                             Background="Transparent" BorderThickness="0"
-                             FontFamily="Cascadia Mono, Consolas" FontSize="12" />
-                </Border>
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.9*" />
+                        <ColumnDefinition Width="1.35*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource CardStyle}" Padding="0" Margin="0,0,10,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="1.15*" />
+                                <RowDefinition Height="0.85*" />
+                            </Grid.RowDefinitions>
+                            <Grid Margin="15,12,15,9">
+                                <TextBlock Text="FINDINGS" Style="{StaticResource EyebrowStyle}" />
+                                <TextBlock Text="Select one for its full rationale" HorizontalAlignment="Right"
+                                           FontSize="10" Foreground="{StaticResource TextQuiet}" />
+                            </Grid>
+                            <ListBox x:Name="FindingListBox" Grid.Row="1" ItemsSource="{Binding FindingItems}"
+                                     Padding="8,0,8,8" Background="Transparent" BorderThickness="0"
+                                     SelectionChanged="FindingListBox_OnSelectionChanged">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="4,5">
+                                            <TextBlock Text="{Binding DispositionLabel}" FontSize="9" FontWeight="Bold"
+                                                       Foreground="{StaticResource Primary}" />
+                                            <TextBlock Text="{Binding Title}" Margin="0,3,0,0" FontWeight="SemiBold"
+                                                       TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding ContextLabel}" Margin="0,3,0,0" FontSize="10"
+                                                       Foreground="{StaticResource TextQuiet}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <Border Grid.Row="2" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0"
+                                    Background="{StaticResource PanelRaised}" Padding="15,11">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="*" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock x:Name="FindingDetailDispositionTextBlock" Text="NO FINDING SELECTED"
+                                               Style="{StaticResource EyebrowStyle}" />
+                                    <TextBlock x:Name="FindingDetailTitleTextBlock" Grid.Row="1" Text="No automated findings"
+                                               Margin="0,4,0,0" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <TextBlock x:Name="FindingDetailContextTextBlock" Grid.Row="2" Margin="0,3,0,0"
+                                               Foreground="{StaticResource TextQuiet}" FontSize="10" />
+                                    <ScrollViewer Grid.Row="3" Margin="0,7,0,7" VerticalScrollBarVisibility="Auto">
+                                        <TextBlock x:Name="FindingDetailTextBlock" TextWrapping="Wrap"
+                                                   Foreground="{StaticResource TextSecondary}"
+                                                   Text="This is not a clean verdict. Review source coverage and normalized evidence before reaching any conclusion." />
+                                    </ScrollViewer>
+                                    <Button x:Name="ScopeFindingButton" Grid.Row="4" Content="Scope records to this finding"
+                                            HorizontalAlignment="Left" IsEnabled="False" Style="{StaticResource CompactButtonStyle}"
+                                            Click="ScopeFindingButton_OnClick" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.4*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,10,0">
+                                <TextBlock Text="Search evidence" Foreground="{StaticResource TextSecondary}" />
+                                <TextBox x:Name="EvidenceSearchTextBox" Margin="0,6,0,0"
+                                         TextChanged="EvidenceSearchTextBox_OnTextChanged" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                                <TextBlock Text="Module / source / kind" Foreground="{StaticResource TextSecondary}" />
+                                <TextBox x:Name="EvidenceModuleScopeTextBox" Margin="0,6,0,0"
+                                         ToolTip="Examples: bam, prefetch, devices, file.metadata"
+                                         TextChanged="EvidenceSearchTextBox_OnTextChanged" />
+                            </StackPanel>
+                            <Button Grid.Column="2" Content="Clear" VerticalAlignment="Bottom"
+                                    Style="{StaticResource CompactButtonStyle}"
+                                    Click="ClearEvidenceFiltersButton_OnClick" />
+                        </Grid>
+                        <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Grid Margin="15,11,15,7">
+                                    <TextBlock Text="NORMALIZED RECORDS" Style="{StaticResource EyebrowStyle}" />
+                                    <TextBlock x:Name="EvidenceResultSummaryTextBlock" Text="NO CASE LOADED"
+                                               HorizontalAlignment="Right" FontSize="10"
+                                               Foreground="{StaticResource TextQuiet}" />
+                                </Grid>
+                                <ListBox Grid.Row="1" ItemsSource="{Binding EvidenceSearchResults}" Padding="14,8"
+                                         Background="Transparent" BorderThickness="0"
+                                         FontFamily="Cascadia Mono, Consolas" FontSize="11" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
             </Grid>
 
             <Grid x:Name="ActivityPage" Margin="24,22">

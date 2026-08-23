@@ -30,7 +30,7 @@ public partial class MainWindow : Window
         CaseIdTextBox.Text = CreateCaseId(now);
         SetReviewWindow(now.AddHours(-6), now);
         RefreshModuleCatalog();
-        RefreshEvidenceSearch();
+        RefreshEvidenceDashboard();
     }
 
     public ObservableCollection<string> Activity { get; } = [];
@@ -38,6 +38,8 @@ public partial class MainWindow : Window
     public ObservableCollection<ModuleCardViewModel> VisibleModules { get; } = [];
 
     public ObservableCollection<string> EvidenceSearchResults { get; } = [];
+
+    public ObservableCollection<FindingListItem> FindingItems { get; } = [];
 
     public string DisplayVersion { get; } = $"DEVELOPMENT  •  {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.0"}";
 
@@ -270,7 +272,7 @@ public partial class MainWindow : Window
                 Findings = EvidenceAnalyzer.Analyze(collectedResult),
             };
             _lastResult = result;
-            RefreshEvidenceSearch();
+            RefreshEvidenceDashboard();
 
             StatusTextBlock.Text = "Packaging local evidence bundle";
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
@@ -381,7 +383,7 @@ public partial class MainWindow : Window
 
             _lastResult = reopened.Result;
             _lastBundlePath = dialog.FileName;
-            RefreshEvidenceSearch();
+            RefreshEvidenceDashboard();
             ExplorerNavButton.IsChecked = true;
             OpenLastBundleButton.IsEnabled = true;
             LastBundlePathTextBlock.Text = dialog.FileName;
@@ -454,6 +456,40 @@ public partial class MainWindow : Window
     private void EvidenceSearchTextBox_OnTextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) =>
         RefreshEvidenceSearch();
 
+    private void FindingListBox_OnSelectionChanged(
+        object sender,
+        System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (FindingListBox.SelectedItem is not FindingListItem finding)
+        {
+            SetEmptyFindingDetail();
+            return;
+        }
+
+        FindingDetailDispositionTextBlock.Text = $"{finding.Id}  ·  {finding.DispositionLabel}";
+        FindingDetailTitleTextBlock.Text = finding.Title;
+        FindingDetailContextTextBlock.Text = finding.ContextLabel;
+        FindingDetailTextBlock.Text = finding.Detail;
+        ScopeFindingButton.IsEnabled = true;
+    }
+
+    private void ScopeFindingButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        if (FindingListBox.SelectedItem is not FindingListItem finding)
+        {
+            return;
+        }
+
+        EvidenceModuleScopeTextBox.Text = finding.RecordKind ?? finding.Module;
+        EvidenceSearchTextBox.Focus();
+    }
+
+    private void ClearEvidenceFiltersButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        EvidenceSearchTextBox.Clear();
+        EvidenceModuleScopeTextBox.Clear();
+    }
+
     private void RefreshModuleCatalog()
     {
         var query = ModuleSearchTextBox?.Text;
@@ -483,6 +519,11 @@ public partial class MainWindow : Window
         if (_lastResult is null)
         {
             EvidenceSearchResults.Add("Run an authorized collection to search its normalized evidence.");
+            if (EvidenceResultSummaryTextBlock is not null)
+            {
+                EvidenceResultSummaryTextBlock.Text = "NO CASE LOADED";
+            }
+
             return;
         }
 
@@ -503,7 +544,87 @@ public partial class MainWindow : Window
         {
             EvidenceSearchResults.Add($"Showing 500 of {records.Count.ToString(CultureInfo.InvariantCulture)} matches. Refine the search to narrow the result set.");
         }
+
+        if (EvidenceResultSummaryTextBlock is not null)
+        {
+            EvidenceResultSummaryTextBlock.Text = records.Count > 500
+                ? $"500 OF {records.Count.ToString(CultureInfo.InvariantCulture)} SHOWN"
+                : $"{records.Count.ToString(CultureInfo.InvariantCulture)} MATCHES";
+        }
     }
+
+    private void RefreshEvidenceDashboard()
+    {
+        FindingItems.Clear();
+        if (_lastResult is null)
+        {
+            RecordsMetricTextBlock.Text = "—";
+            ReviewMetricTextBlock.Text = "—";
+            CoverageGapMetricTextBlock.Text = "—";
+            ModuleCoverageMetricTextBlock.Text = "—";
+            SourceCoverageMetricTextBlock.Text = "—";
+            ModuleCoverageDetailTextBlock.Text = "No case loaded";
+            SourceCoverageDetailTextBlock.Text = "No case loaded";
+            SetEmptyFindingDetail();
+            RefreshEvidenceSearch();
+            return;
+        }
+
+        var summary = EvidenceCoverageSummary.Create(_lastResult);
+        RecordsMetricTextBlock.Text = summary.RecordCount.ToString("N0", CultureInfo.InvariantCulture);
+        ReviewMetricTextBlock.Text = summary.ReviewFindingCount.ToString("N0", CultureInfo.InvariantCulture);
+        CoverageGapMetricTextBlock.Text = summary.CoverageGapCount.ToString("N0", CultureInfo.InvariantCulture);
+        ModuleCoverageMetricTextBlock.Text = $"{summary.CompletedModuleCount.ToString(CultureInfo.InvariantCulture)}/{summary.ModuleCount.ToString(CultureInfo.InvariantCulture)}";
+        SourceCoverageMetricTextBlock.Text = $"{summary.AvailableSourceCount.ToString(CultureInfo.InvariantCulture)}/{summary.SourceCount.ToString(CultureInfo.InvariantCulture)}";
+        ModuleCoverageDetailTextBlock.Text = summary.CompletedModuleCount == summary.ModuleCount
+            ? "All modules completed"
+            : $"{(summary.ModuleCount - summary.CompletedModuleCount).ToString(CultureInfo.InvariantCulture)} incomplete";
+        SourceCoverageDetailTextBlock.Text = $"{summary.LimitedSourceCount.ToString(CultureInfo.InvariantCulture)} limited · {summary.UnavailableSourceCount.ToString(CultureInfo.InvariantCulture)} unavailable";
+
+        foreach (var finding in _lastResult.Findings
+                     .OrderBy(finding => FindingOrder(finding.Disposition))
+                     .ThenBy(finding => finding.Id, StringComparer.Ordinal))
+        {
+            FindingItems.Add(new FindingListItem(
+                finding.Id,
+                finding.Disposition,
+                finding.Title,
+                finding.Detail,
+                finding.Module,
+                finding.RecordKind));
+        }
+
+        if (FindingItems.Count > 0)
+        {
+            FindingListBox.SelectedIndex = 0;
+        }
+        else
+        {
+            SetEmptyFindingDetail();
+        }
+
+        RefreshEvidenceSearch();
+    }
+
+    private void SetEmptyFindingDetail()
+    {
+        FindingDetailDispositionTextBlock.Text = "NO FINDING SELECTED";
+        FindingDetailTitleTextBlock.Text = FindingItems.Count == 0
+            ? "No automated findings"
+            : "Select a finding";
+        FindingDetailContextTextBlock.Text = string.Empty;
+        FindingDetailTextBlock.Text = FindingItems.Count == 0
+            ? "This is not a clean verdict. Review source coverage and the normalized evidence before reaching any conclusion."
+            : "Choose a finding to review its full neutral rationale and scope matching records.";
+        ScopeFindingButton.IsEnabled = false;
+    }
+
+    private static int FindingOrder(FindingDisposition disposition) => disposition switch
+    {
+        FindingDisposition.NeedsReview => 0,
+        FindingDisposition.CoverageGap => 1,
+        _ => 2,
+    };
 
     private static string FormatEvidenceRecord(EvidenceRecord record)
     {

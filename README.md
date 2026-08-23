@@ -32,7 +32,7 @@ Each collector is read-only, independently cancellable and failure-isolated. A f
 | System posture | Secure Boot, VBS/memory-integrity, App Control and vulnerable-driver-blocklist state exposed by documented Windows sources | A protection being off is context, not evidence of cheating |
 | Findings | Neutral `informational`, `needsReview` and `coverageGap` observations | No finding is an automated moderation verdict |
 | Module catalog | Searchable status and boundaries for the full requested suite | Planned and privacy-gated entries are labeled; they are not fake enabled tools |
-| Evidence explorer | Full-field search with an optional module/source/kind scope plus verified reopening of encrypted `.dbdr` and legacy ZIP cases | Reopening validates the v0.5 schema and manifest; it does not re-query the checked endpoint |
+| Evidence explorer | Compact record/finding/source/module coverage dashboard, full finding rationale, one-click finding scope, full-field search and verified reopening of encrypted `.dbdr` or legacy ZIP cases | Counts describe collected normalized evidence and explicit gaps; they are not a clean/cheating score, and reopening never re-queries the endpoint |
 
 The suite does **not** upload evidence. It does not inspect browser history or downloads, chats, credentials, clipboard contents, screenshots, personal documents, PowerShell commands/scripts/history, crash dumps, raw process or kernel memory, or memory-derived strings. It does not terminate processes, modify services, install drivers, attach a debugger or clear logs.
 
