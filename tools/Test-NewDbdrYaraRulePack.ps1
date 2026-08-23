@@ -52,7 +52,7 @@ try {
         $output = [IO.MemoryStream]::new()
         try {
             $input.CopyTo($output)
-            return $output.ToArray()
+            return ,$output.ToArray()
         }
         finally {
             $input.Dispose()
