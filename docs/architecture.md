@@ -28,6 +28,8 @@ The cached process provider ensures that process facts are not recollected after
 
 The release target is a self-contained `win-x64` single-file executable. It does not install a service or driver, write an uninstaller entry or persist settings. The .NET single-file host may extract native libyara components to the runtime extraction area while the app is running. The embedded baseline rule file is materialized in a unique temporary directory, hashed, compiled and removed when the collection finishes. An operator-selected custom rule file remains in place and its contents are not exported.
 
+New UI collections are exported as `.dbdr` containers: the complete manifest-bearing ZIP is encrypted in bounded chunks with AES-256-GCM and a PBKDF2-SHA256 passphrase-derived key. Reopening decrypts to a delete-on-close temporary stream, validates safe archive structure and caps, verifies every manifest entry, validates the schema and only then loads normalized evidence. The passphrase is not serialized and loss is unrecoverable. Legacy plaintext ZIP reopening remains available for migration.
+
 The executable manifest requires administrator elevation before the WPF application starts. Elevation improves access to approved read-only sources but does not bypass the in-app authorization gate or change module scope. Cancelling UAC prevents the process from starting.
 
 ## Search contract

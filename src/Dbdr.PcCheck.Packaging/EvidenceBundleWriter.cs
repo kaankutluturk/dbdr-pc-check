@@ -11,6 +11,8 @@ namespace Dbdr.PcCheck.Packaging;
 public sealed class EvidenceBundleWriter
 {
     public const string EvidenceSchemaVersion = "0.5.0";
+    public const int MinimumPassphraseCharacters = EvidenceBundleEncryption.MinimumPassphraseCharacters;
+    public const int MaximumPassphraseCharacters = EvidenceBundleEncryption.MaximumPassphraseCharacters;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -20,9 +22,58 @@ public sealed class EvidenceBundleWriter
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
-    public async Task<string> WriteAsync(
+    public async Task<string> WriteEncryptedAsync(
         CollectionRunResult result,
         string outputDirectory,
+        string passphrase,
+        CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+        EvidenceBundleEncryption.ValidatePassphrase(passphrase);
+        Directory.CreateDirectory(outputDirectory);
+        var temporaryOutputDirectory = Path.Combine(Path.GetTempPath(), "DBDRPcCheck", "encryption", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(temporaryOutputDirectory);
+
+        try
+        {
+            var plainZipPath = await WriteZipAsync(
+                result,
+                temporaryOutputDirectory,
+                willBeEncrypted: true,
+                cancellationToken).ConfigureAwait(false);
+            var encryptedFileName = Path.ChangeExtension(Path.GetFileName(plainZipPath), ".dbdr");
+            var encryptedPath = Path.Combine(outputDirectory, encryptedFileName);
+            await EvidenceBundleEncryption
+                .EncryptAsync(plainZipPath, encryptedPath, passphrase, cancellationToken)
+                .ConfigureAwait(false);
+            return encryptedPath;
+        }
+        finally
+        {
+            try
+            {
+                if (Directory.Exists(temporaryOutputDirectory))
+                {
+                    Directory.Delete(temporaryOutputDirectory, recursive: true);
+                }
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                // Preserve the encryption result when security software briefly retains a temporary archive.
+            }
+        }
+    }
+
+    public Task<string> WriteAsync(
+        CollectionRunResult result,
+        string outputDirectory,
+        CancellationToken cancellationToken) =>
+        WriteZipAsync(result, outputDirectory, willBeEncrypted: false, cancellationToken);
+
+    private async Task<string> WriteZipAsync(
+        CollectionRunResult result,
+        string outputDirectory,
+        bool willBeEncrypted,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
@@ -76,7 +127,7 @@ public sealed class EvidenceBundleWriter
 
             await File.WriteAllTextAsync(
                 Path.Combine(workingDirectory, "privacy.txt"),
-                "DBDR Evidence Suite development bundle: local-only, not encrypted, and not a moderation verdict. Depending on operator selection it can include sensitive redacted executable paths, application inventory, crash metadata, PowerShell engine lifecycle metadata, PE structure/import observations, byte entropy, YARA rule identifiers, time-bounded Windows execution and Code Integrity artifacts, persistence/driver configuration and privacy-minimized device/security-posture facts. It excludes browser/chat data, credentials, commands and script content, crash dumps, unique device serials, arbitrary binary strings, matched byte content and process or kernel memory. Restrict access, apply a case-specific retention period and delete the bundle when no longer required. See PRIVACY.md in the source repository.",
+                CreatePrivacyNotice(willBeEncrypted),
                 Encoding.UTF8,
                 cancellationToken).ConfigureAwait(false);
 
@@ -128,4 +179,11 @@ public sealed class EvidenceBundleWriter
             Encoding.ASCII,
             cancellationToken).ConfigureAwait(false);
     }
+
+    private static string CreatePrivacyNotice(bool willBeEncrypted) =>
+        "DBDR Evidence Suite development bundle: local-only, "
+        + (willBeEncrypted
+            ? "wrapped by the application in an authenticated encrypted .dbdr container, "
+            : "stored in a legacy unencrypted ZIP, ")
+        + "and not a moderation verdict. Depending on operator selection it can include sensitive redacted executable paths, application inventory, crash metadata, PowerShell engine lifecycle metadata, PE structure/import observations, byte entropy, YARA rule identifiers, time-bounded Windows execution and Code Integrity artifacts, persistence/driver configuration and privacy-minimized device/security-posture facts. It excludes browser/chat data, credentials, commands and script content, crash dumps, unique device serials, arbitrary binary strings, matched byte content and process or kernel memory. Restrict access, apply a case-specific retention period and delete the bundle when no longer required. See PRIVACY.md in the source repository.";
 }

@@ -39,6 +39,8 @@ public partial class MainWindow : Window
 
     public ObservableCollection<string> EvidenceSearchResults { get; } = [];
 
+    public string DisplayVersion { get; } = $"DEVELOPMENT  •  {Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.5.0"}";
+
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
@@ -116,6 +118,31 @@ public partial class MainWindow : Window
             return;
         }
 
+        var bundlePassphrase = BundlePassphrasePasswordBox.Password;
+        if (bundlePassphrase.Length is < EvidenceBundleWriter.MinimumPassphraseCharacters
+            or > EvidenceBundleWriter.MaximumPassphraseCharacters
+            || string.IsNullOrWhiteSpace(bundlePassphrase))
+        {
+            MessageBox.Show(
+                this,
+                $"Enter a case passphrase containing {EvidenceBundleWriter.MinimumPassphraseCharacters}–{EvidenceBundleWriter.MaximumPassphraseCharacters} characters.",
+                "Bundle passphrase required",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
+        if (!string.Equals(bundlePassphrase, BundlePassphraseConfirmPasswordBox.Password, StringComparison.Ordinal))
+        {
+            MessageBox.Show(
+                this,
+                "The case passphrase and confirmation do not match.",
+                "Passphrases do not match",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
         SetRunningState(true);
         Activity.Clear();
         ActivityNavButton.IsChecked = true;
@@ -124,9 +151,7 @@ public partial class MainWindow : Window
         try
         {
             var collectionStartedUtc = DateTimeOffset.UtcNow;
-            var version = Assembly.GetExecutingAssembly()
-                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                .InformationalVersion ?? "0.5.0-development";
+            var version = GetCollectorVersion();
             var context = new CollectionContext(
                 caseId,
                 reviewWindowStartUtc,
@@ -251,15 +276,18 @@ public partial class MainWindow : Window
             var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
             var outputDirectory = Path.Combine(desktop, "DBDR-PC-Checks");
             var bundlePath = await new EvidenceBundleWriter()
-                .WriteAsync(result, outputDirectory, _cancellationTokenSource.Token);
+                .WriteEncryptedAsync(result, outputDirectory, bundlePassphrase, _cancellationTokenSource.Token);
+            var verifiedBundle = await new EvidenceBundleReader()
+                .ReadAsync(bundlePath, bundlePassphrase, _cancellationTokenSource.Token);
 
             _lastBundlePath = bundlePath;
-            Activity.Add($"Bundle created: {bundlePath}");
+            Activity.Add($"Encrypted bundle created and verified: {bundlePath}");
             var reviewCount = result.Findings.Count(finding => finding.Disposition == FindingDisposition.NeedsReview);
             var gapCount = result.Findings.Count(finding => finding.Disposition == FindingDisposition.CoverageGap);
             StatusTextBlock.Text = "Collection complete — observations, not a verdict";
             CollectionSummaryTextBlock.Text = $"{result.Records.Count} records · {reviewCount} review item(s) · {gapCount} coverage gap(s)";
             LastBundlePathTextBlock.Text = bundlePath;
+            BundleVerificationTextBlock.Text = $"Current case {result.Context.CaseId} · encrypted · {verifiedBundle.Verification.VerifiedEntryCount} manifest entries verified.";
             OpenLastBundleButton.IsEnabled = true;
 
             var answer = MessageBox.Show(
@@ -292,6 +320,8 @@ public partial class MainWindow : Window
         }
         finally
         {
+            BundlePassphrasePasswordBox.Clear();
+            BundlePassphraseConfirmPasswordBox.Clear();
             _cancellationTokenSource?.Dispose();
             _cancellationTokenSource = null;
             SetRunningState(false);
@@ -311,6 +341,74 @@ public partial class MainWindow : Window
         {
             UseShellExecute = true,
         });
+    }
+
+    private async void OpenEvidenceBundleButton_OnClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Open and verify DBDR evidence bundle",
+            Filter = "DBDR evidence bundles (*.dbdr;*.zip)|*.dbdr;*.zip|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false,
+        };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        OpenEvidenceBundleButton.IsEnabled = false;
+        BundleVerificationTextBlock.Text = "Verifying bundle structure and manifest…";
+        try
+        {
+            var reader = new EvidenceBundleReader();
+            EvidenceBundleReadResult reopened;
+            try
+            {
+                reopened = await reader.ReadAsync(dialog.FileName, CancellationToken.None);
+            }
+            catch (EvidenceBundlePassphraseRequiredException)
+            {
+                var passphraseDialog = new BundlePassphraseDialog { Owner = this };
+                if (passphraseDialog.ShowDialog() != true)
+                {
+                    BundleVerificationTextBlock.Text = "Encrypted bundle opening was cancelled.";
+                    return;
+                }
+
+                reopened = await reader.ReadAsync(dialog.FileName, passphraseDialog.Passphrase, CancellationToken.None);
+            }
+
+            _lastResult = reopened.Result;
+            _lastBundlePath = dialog.FileName;
+            RefreshEvidenceSearch();
+            ExplorerNavButton.IsChecked = true;
+            OpenLastBundleButton.IsEnabled = true;
+            LastBundlePathTextBlock.Text = dialog.FileName;
+            var reviewCount = reopened.Result.Findings.Count(finding => finding.Disposition == FindingDisposition.NeedsReview);
+            var gapCount = reopened.Result.Findings.Count(finding => finding.Disposition == FindingDisposition.CoverageGap);
+            CollectionSummaryTextBlock.Text = $"{reopened.Result.Records.Count} records · {reviewCount} review item(s) · {gapCount} coverage gap(s)";
+            var protection = reopened.Verification.Encrypted ? "encrypted" : "legacy plaintext";
+            BundleVerificationTextBlock.Text = $"Case {reopened.Result.Context.CaseId} · {protection} · {reopened.Verification.VerifiedEntryCount} manifest entries verified.";
+            Activity.Add($"Verified and reopened {protection} evidence bundle for case {reopened.Result.Context.CaseId}.");
+        }
+        catch (Exception exception) when (exception is InvalidDataException
+            or IOException
+            or UnauthorizedAccessException
+            or System.Security.Cryptography.CryptographicException)
+        {
+            BundleVerificationTextBlock.Text = "Bundle verification failed. No evidence was loaded.";
+            MessageBox.Show(
+                this,
+                $"The evidence bundle could not be verified ({exception.GetType().Name}): {exception.Message}",
+                "Bundle verification failed",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            OpenEvidenceBundleButton.IsEnabled = true;
+        }
     }
 
     private void YaraRulesBrowseButton_OnClick(object sender, RoutedEventArgs e)
@@ -461,6 +559,9 @@ public partial class MainWindow : Window
         YaraRulesPathTextBox.IsEnabled = !isRunning;
         YaraRulesBrowseButton.IsEnabled = !isRunning;
         AdvancedTriageExpander.IsEnabled = !isRunning;
+        BundlePassphrasePasswordBox.IsEnabled = !isRunning;
+        BundlePassphraseConfirmPasswordBox.IsEnabled = !isRunning;
+        OpenEvidenceBundleButton.IsEnabled = !isRunning;
     }
 
     private void SetReviewWindow(DateTimeOffset startUtc, DateTimeOffset endUtc)
@@ -482,6 +583,11 @@ public partial class MainWindow : Window
 
     private static string FormatUtc(DateTimeOffset value) =>
         value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+
+    private static string GetCollectorVersion() =>
+        Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion ?? "0.5.0-development";
 
     [DllImport("dwmapi.dll", PreserveSig = true)]
     private static extern int DwmSetWindowAttribute(

@@ -2,7 +2,7 @@
 
 A consent-based, read-only Windows evidence suite for consistent and reviewable DBDR PC checks.
 
-> **Development status:** v0.5.0 hardens executable and driver triage with a bounded hostile-input PE parser, section entropy, writable+executable-section detection, import-risk clusters, expanded embedded YARA review rules, persistence-binary inspection, Windows code-integrity/security-posture context and an actual packaged-app launch smoke test. It is not a cheat detector and must not be used as the sole basis for a moderation decision.
+> **Development status:** v0.5.0 hardens executable and driver triage with a bounded hostile-input PE parser, section entropy, writable+executable-section detection, import-risk clusters, expanded embedded YARA review rules, persistence-binary inspection, Windows code-integrity/security-posture context, authenticated encrypted case bundles and an actual packaged-app launch smoke test. It is not a cheat detector and must not be used as the sole basis for a moderation decision.
 
 ## Product shape
 
@@ -13,7 +13,8 @@ The desktop application provides one guided workflow instead of a folder of unre
 3. preserve volatile DBD and process state first;
 4. collect slower historical and configuration evidence independently;
 5. generate neutral review items and explicit coverage gaps; and
-6. export a local evidence bundle and offline report.
+6. export an authenticated encrypted local evidence bundle and offline report; and
+7. reopen a `.dbdr` or legacy ZIP bundle only after bounded archive and manifest verification.
 
 Each collector is read-only, independently cancellable and failure-isolated. A failed source does not erase successful evidence from another source.
 
@@ -31,7 +32,7 @@ Each collector is read-only, independently cancellable and failure-isolated. A f
 | System posture | Secure Boot, VBS/memory-integrity, App Control and vulnerable-driver-blocklist state exposed by documented Windows sources | A protection being off is context, not evidence of cheating |
 | Findings | Neutral `informational`, `needsReview` and `coverageGap` observations | No finding is an automated moderation verdict |
 | Module catalog | Searchable status and boundaries for the full requested suite | Planned and privacy-gated entries are labeled; they are not fake enabled tools |
-| Evidence explorer | Full-field search with an optional module/source/kind scope | Searches normalized records from the current in-memory run only |
+| Evidence explorer | Full-field search with an optional module/source/kind scope plus verified reopening of encrypted `.dbdr` and legacy ZIP cases | Reopening validates the v0.5 schema and manifest; it does not re-query the checked endpoint |
 
 The suite does **not** upload evidence. It does not inspect browser history or downloads, chats, credentials, clipboard contents, screenshots, personal documents, PowerShell commands/scripts/history, crash dumps, raw process or kernel memory, or memory-derived strings. It does not terminate processes, modify services, install drivers, attach a debugger or clear logs.
 
@@ -75,4 +76,4 @@ Reviewers must distinguish:
 
 ## Module roadmap
 
-The requested WinPrefetch, Autoruns, String Explorer, USB, saved-file, PowerShell, path, MFT, kernel dump, journal, crash, browser, BAM, Amcache and SRUM capabilities are tracked individually in the in-app catalog and [module roadmap](docs/module-roadmap.md). Prefetch, PowerShell, crash and Amcache use real adapters with explicit minimization; browser collection and memory dumps remain excluded. v0.5.0 compensates with stronger executable, driver, Code Integrity and security-posture evidence while bounded NTFS history, SRUM minimization, bundle reopening/encryption and signed rule distribution remain staged work.
+The requested WinPrefetch, Autoruns, String Explorer, USB, saved-file, PowerShell, path, MFT, kernel dump, journal, crash, browser, BAM, Amcache and SRUM capabilities are tracked individually in the in-app catalog and [module roadmap](docs/module-roadmap.md). Prefetch, PowerShell, crash and Amcache use real adapters with explicit minimization; browser collection and memory dumps remain excluded. v0.5.0 compensates with stronger executable, driver, Code Integrity and security-posture evidence while SRUM minimization, broader Windows fixtures, detection calibration and signed rule distribution remain staged work.

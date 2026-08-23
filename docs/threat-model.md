@@ -27,6 +27,8 @@ The packaged suite intentionally runs with an elevated token. A compromised rele
 
 The process snapshot is cached before slower module/file inspection. This reduces but cannot eliminate process exit, PID reuse, path replacement and time-of-check/time-of-use races. Basic file identity is compared before and after hashing, but a privileged hostile system can still deceive the collector.
 
+The encrypted `.dbdr` format authenticates content using a case passphrase, but it cannot compensate for a weak, reused, disclosed or lost passphrase. PBKDF2 raises offline-guessing cost but does not make a low-entropy password safe. Plaintext working data can briefly exist in the local temporary directory during packaging or verified reopening; abrupt system failure can defeat best-effort cleanup. Legacy ZIP manifests detect modification only when the expected manifest is trusted and can be recomputed by an attacker.
+
 ## Source-specific limitations
 
 - **BAM:** layout and retention vary by Windows version and configuration. A missing key or entry is not proof of absence.

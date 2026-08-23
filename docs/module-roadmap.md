@@ -25,3 +25,7 @@ The product remains one portable executable with internal adapters and one norma
 ## Integration rule
 
 Open-source parsers are integrated as libraries or source-reviewed adapters where practical. The suite does not download tools at runtime or present a folder of third-party EXEs. MIT/BSD components may be embedded in the self-contained build with notices; every parser still returns the DBDR schema, cancellation behavior, coverage status and redacted paths.
+
+## Case handling
+
+Encrypted `.dbdr` export, authenticated reopening, legacy ZIP manifest verification and in-app evidence reloading are available in v0.5. Further case-backend work still requires short-lived authorization, server-side retention enforcement and audited access; the desktop client contains no upload path or embedded decryption key.

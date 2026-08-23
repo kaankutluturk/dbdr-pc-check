@@ -65,6 +65,18 @@
             </Setter>
         </Style>
 
+        <Style TargetType="PasswordBox">
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Padding" Value="11,0" />
+            <Setter Property="Background" Value="{StaticResource PanelRaised}" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimary}" />
+            <Setter Property="CaretBrush" Value="{StaticResource Primary}" />
+            <Setter Property="SelectionBrush" Value="{StaticResource Primary}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
         <Style TargetType="Button">
             <Setter Property="Height" Value="38" />
             <Setter Property="Padding" Value="16,0" />

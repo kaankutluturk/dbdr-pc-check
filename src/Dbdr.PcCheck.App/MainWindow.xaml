@@ -41,7 +41,7 @@
                             Background="{StaticResource PrimarySoft}"
                             BorderBrush="{StaticResource BorderStrong}"
                             BorderThickness="1" CornerRadius="4">
-                        <TextBlock Text="DEVELOPMENT  •  0.4.0" FontSize="10" FontWeight="SemiBold"
+                        <TextBlock Text="{Binding DisplayVersion}" FontSize="10" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextSecondary}" />
                     </Border>
                 </StackPanel>
@@ -221,6 +221,32 @@
                             </StackPanel>
                         </Border>
 
+                        <Border Style="{StaticResource CardStyle}" Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Bundle protection" Style="{StaticResource SectionTitleStyle}" />
+                                <TextBlock Margin="0,5,0,11" Style="{StaticResource MutedTextStyle}"
+                                           Text="The exported .dbdr case is authenticated and encrypted locally. The passphrase is required to reopen it and is never written into the bundle." />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,16,0">
+                                        <TextBlock Text="Case passphrase" Foreground="{StaticResource TextSecondary}" />
+                                        <PasswordBox x:Name="BundlePassphrasePasswordBox" Margin="0,6,0,0"
+                                                     ToolTip="12–256 characters; not recoverable" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1">
+                                        <TextBlock Text="Confirm passphrase" Foreground="{StaticResource TextSecondary}" />
+                                        <PasswordBox x:Name="BundlePassphraseConfirmPasswordBox" Margin="0,6,0,0"
+                                                     ToolTip="Enter the same case passphrase again" />
+                                    </StackPanel>
+                                </Grid>
+                                <TextBlock Margin="0,7,0,0" FontSize="12" Foreground="{StaticResource TextQuiet}"
+                                           Text="Minimum 12 characters. DBDR cannot recover a lost passphrase." />
+                            </StackPanel>
+                        </Border>
+
                         <Expander x:Name="AdvancedTriageExpander" Margin="0,10,0,0"
                                   Header="Advanced triage · YARA and custom rules"
                                   Style="{StaticResource CompactExpanderStyle}">
@@ -271,7 +297,7 @@
                     <Grid>
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock Text="Local output" FontWeight="SemiBold" />
-                            <TextBlock Text="Desktop\DBDR-PC-Checks · no upload"
+                            <TextBlock Text="Desktop\DBDR-PC-Checks · encrypted .dbdr · no upload"
                                        Margin="0,2,0,0" FontSize="12" Foreground="{StaticResource TextQuiet}" />
                         </StackPanel>
                         <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
@@ -373,12 +399,22 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <StackPanel>
-                    <TextBlock Text="NORMALIZED CASE EVIDENCE" Style="{StaticResource EyebrowStyle}" />
-                    <TextBlock Text="Evidence explorer" Margin="0,4,0,0" Style="{StaticResource PageTitleStyle}" />
-                    <TextBlock Text="Search every normalized field or scope the query to one module, source or record kind."
-                               Margin="0,5,0,0" Style="{StaticResource MutedTextStyle}" />
-                </StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="NORMALIZED CASE EVIDENCE" Style="{StaticResource EyebrowStyle}" />
+                        <TextBlock Text="Evidence explorer" Margin="0,4,0,0" Style="{StaticResource PageTitleStyle}" />
+                        <TextBlock x:Name="BundleVerificationTextBlock"
+                                   Text="Search the current run or reopen a verified .dbdr / legacy .zip case."
+                                   Margin="0,5,0,0" Style="{StaticResource MutedTextStyle}" />
+                    </StackPanel>
+                    <Button x:Name="OpenEvidenceBundleButton" Grid.Column="1" Content="Open verified bundle…"
+                            VerticalAlignment="Bottom" Style="{StaticResource CompactButtonStyle}"
+                            Click="OpenEvidenceBundleButton_OnClick" />
+                </Grid>
                 <Grid Grid.Row="1" Margin="0,18,0,10">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1.6*" />
@@ -488,7 +524,7 @@
                             <StackPanel Margin="0,0,18,18">
                                 <TextBlock Text="Read-only scope" Style="{StaticResource SectionTitleStyle}" />
                                 <TextBlock Margin="0,6,0,0" Style="{StaticResource MutedTextStyle}"
-                                           Text="Processes, DBD modules, approved execution and persistence metadata, hashes, signatures and privacy-minimized device facts. Opt-in sources add Amcache executable inventory, crash metadata and PowerShell lifecycle events." />
+                                           Text="Processes, DBD modules, approved execution and persistence metadata, hashes, signatures and privacy-minimized device facts. Opt-in sources add Amcache, crash, PowerShell lifecycle and bounded NTFS executable-change metadata." />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Margin="0,0,0,18">
                                 <TextBlock Text="Never collected" Style="{StaticResource SectionTitleStyle}" />
@@ -503,7 +539,7 @@
                             <StackPanel Grid.Row="1" Grid.Column="1">
                                 <TextBlock Text="Local handling" Style="{StaticResource SectionTitleStyle}" />
                                 <TextBlock Margin="0,6,0,0" Style="{StaticResource MutedTextStyle}"
-                                           Text="The ZIP stays on this PC and is not encrypted. Restrict access, retain it only for the case period, delete it when no longer required and keep it out of public channels." />
+                                           Text="New .dbdr cases are authenticated and encrypted with the case passphrase. The passphrase is not stored or recoverable; keep it separate from the bundle and delete both when retention ends." />
                             </StackPanel>
                         </Grid>
                     </Border>

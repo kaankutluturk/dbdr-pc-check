@@ -2,6 +2,8 @@
 
 `case.json` contains `evidenceSchemaVersion: "0.5.0"` and `analysisProfileVersion: "0.5.0"`.
 
+The operational UI wraps the ZIP entry set in a `.dbdr` version-1 container using chunked AES-256-GCM and a passphrase-derived PBKDF2-SHA256 key. The outer header contains only format/KDF parameters, random salt and nonce prefix, chunk size and plaintext length; case metadata remains inside the encrypted archive. Every chunk authenticates the complete header, its index and length. The passphrase is not stored. Legacy plaintext ZIP bundles can be reopened for migration, but new UI collections require encrypted output.
+
 | Entry | Purpose |
 | --- | --- |
 | `case.json` | Case identifier, explicit review window, versions and collection timestamps |
@@ -11,6 +13,8 @@
 | `report.html` | Offline human-readable report |
 | `privacy.txt` | Bundle-local collection-boundary reminder |
 | `manifest.sha256` | SHA-256 for every other entry in ordinal filename order |
+
+Reopening is performed without archive extraction. The reader rejects nested paths, duplicate or unexpected entries, oversized compressed/decompressed content, incomplete manifests, hash mismatches, unsupported schemas and normalized record counts above fixed limits before exposing evidence to the UI. Manifest verification detects changes to a legacy ZIP but does not prove its author; the authenticated `.dbdr` container additionally prevents modification without the case passphrase.
 
 ## Evidence record
 
