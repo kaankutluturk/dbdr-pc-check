@@ -257,7 +257,7 @@ public static class EvidenceAnalyzer
             findings.Add(new FindingCandidate(
                 FindingDisposition.CoverageGap,
                 $"{Get(record, "sourceName") ?? record.Source} partial parse failure",
-                detail,
+                detail ?? "Source reported parse failures without additional detail.",
                 record.Module,
                 record.Kind));
         }
