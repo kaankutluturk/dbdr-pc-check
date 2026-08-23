@@ -10,7 +10,7 @@ The product remains one portable executable with internal adapters and one norma
 | USBDeview | Preview | Existing privacy-minimized PnP inventory, then time-bounded device-install artifact correlation | Unique serials and instance IDs remain excluded |
 | Saved Files Viewer | Privacy gated | None under the current contract | Personal filenames and save paths are excluded |
 | PowerShell Parser | Preview | Opt-in time-bounded engine/provider lifecycle event metadata | Command, script-block, event payload, user and terminal history remain excluded |
-| Paths Parser | Planned | Cross-source path correlation over redacted normalized evidence; later LNK/Jump List review | Personal recent-file content needs separate approval |
+| Paths Parser | Preview | Exact redacted executable-path correlation across BAM/Amcache/SRUM usage and live-module/persistence binary evidence | Requires an independent signature, YARA or PE-import signal; no LNK/Jump List or personal recent-file parsing |
 | MFT Explorer | Planned | Read-only, time-bounded NTFS parser with strict caps and redaction | Raw-volume access, scale, timestamp semantics and recovery records need tests |
 | Kernel Live Dump | Privacy gated | None in this suite | Kernel dumps can contain user-mode pages and violate the no-memory boundary |
 | Journal Trace | Preview | Read-only bounded USN journal tail for execution-capable leaf filenames and change sequences | No full path reconstruction or file-reference serialization; a missing/rotated/capped journal is a coverage gap, never evasion proof |
@@ -19,7 +19,7 @@ The product remains one portable executable with internal adapters and one norma
 | Browser Downloads View | Privacy gated | None in this suite | Browser download records are excluded |
 | BAM Parser | Available | Existing time-bounded BAM adapter | Windows layout and retention vary |
 | Amcache Parser | Preview | Capped live registry adapter for executable application inventory with redacted paths | Current inventory is not execution proof; no locked-hive fallback yet |
-| SRUM Explorer | Planned | Time-bounded application usage only, with identities and destinations removed | ESE parsing, SOFTWARE mapping and minimization tests required |
+| SRUM Explorer | Preview | Opt-in `powercfg /srumutil` adapter retaining only in-window executable name, redacted path and timestamp, capped at 5,000 records | Native export is 64 MiB/60 s capped and immediately deleted; user IDs, network fields, usage amounts and unresolved identities are discarded |
 | YARA + entropy | Available | libyara 4.5.5, embedded baseline, optional custom rules and full-file Shannon entropy | Scans only already referenced files; matches are leads |
 
 ## Integration rule

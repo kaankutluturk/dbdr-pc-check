@@ -215,7 +215,7 @@
                                                   ToolTip="Device classes and model IDs; serial instance IDs excluded" />
                                         <CheckBox x:Name="ExtendedForensicsCheckBox" Content="Extended forensic metadata" IsChecked="False"
                                                   Margin="0,10,0,0"
-                                                  ToolTip="Opt-in Amcache inventory, crash/PowerShell lifecycle and bounded NTFS executable-change history; content and dumps excluded" />
+                                                  ToolTip="Opt-in Amcache, crash/PowerShell lifecycle, bounded NTFS executable changes and minimized SRUM application usage; content, identities, network fields and dumps excluded" />
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
@@ -653,7 +653,7 @@
                             <StackPanel Margin="0,0,18,18">
                                 <TextBlock Text="Read-only scope" Style="{StaticResource SectionTitleStyle}" />
                                 <TextBlock Margin="0,6,0,0" Style="{StaticResource MutedTextStyle}"
-                                           Text="Processes, DBD modules, approved execution and persistence metadata, hashes, signatures and privacy-minimized device facts. Opt-in sources add Amcache, crash, PowerShell lifecycle and bounded NTFS executable-change metadata." />
+                                           Text="Processes, DBD modules, approved execution and persistence metadata, hashes, signatures and privacy-minimized device facts. Opt-in sources add Amcache, crash, PowerShell lifecycle, bounded NTFS executable changes and minimized SRUM application usage." />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Margin="0,0,0,18">
                                 <TextBlock Text="Never collected" Style="{StaticResource SectionTitleStyle}" />

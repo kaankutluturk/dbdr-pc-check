@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "dbdr-detection-fixture/1",
+  "name": "Minimized SRUM path correlation",
+  "description": "An exact redacted application path spanning SRUM usage and an unsigned persistence binary creates one corroborated path lead plus the neutral unsigned observation.",
+  "reviewWindowStartUtc": "2026-08-23T08:00:00Z",
+  "reviewWindowEndUtc": "2026-08-23T10:00:00Z",
+  "modules": [
+    {
+      "module": "execution-history",
+      "completed": true,
+      "records": [
+        {
+          "kind": "execution.srum_application",
+          "source": "synthetic-validation",
+          "sourceTimestampUtc": "2026-08-23T09:30:00Z",
+          "fields": {
+            "applicationName": "shared-loader.exe",
+            "applicationPath": "%USERPROFILE%\\AppData\\Local\\shared-loader.exe",
+            "identityForm": "redacted-path"
+          }
+        },
+        {
+          "kind": "persistence.binary",
+          "source": "synthetic-validation",
+          "fields": {
+            "executablePath": "%USERPROFILE%\\AppData\\Local\\shared-loader.exe",
+            "authenticodeStatus": "unsigned"
+          }
+        }
+      ],
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "expectedFindings": [
+    {
+      "disposition": "informational",
+      "title": "Unsigned referenced executable",
+      "module": "execution-history",
+      "recordKind": "persistence.binary"
+    },
+    {
+      "disposition": "needsReview",
+      "title": "Flagged executable path spans approved source and persistence evidence",
+      "module": "correlation",
+      "recordKind": "persistence.binary"
+    }
+  ]
+}

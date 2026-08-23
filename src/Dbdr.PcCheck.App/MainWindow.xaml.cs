@@ -214,6 +214,7 @@ public partial class MainWindow : Window
                     new ApplicationCrashEventSource(redactor),
                     new PowerShellEngineEventSource(),
                     new UsnJournalExecutionHistorySource(),
+                    new SrumApplicationUsageSource(redactor),
                 ]);
             }
             else
@@ -224,6 +225,7 @@ public partial class MainWindow : Window
                     "Application Error crash metadata",
                     "PowerShell engine and provider lifecycle",
                     "NTFS USN Journal executable changes",
+                    "SRUM application usage",
                 ]);
             }
 

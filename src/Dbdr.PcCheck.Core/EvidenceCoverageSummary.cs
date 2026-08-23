@@ -22,10 +22,7 @@ public sealed record EvidenceCoverageSummary(
             .Where(record => record.Kind == "coverage.source")
             .DistinctBy(record => SourceKey(record), StringComparer.OrdinalIgnoreCase)
             .ToArray();
-        var available = sources.Count(record => string.Equals(
-            Get(record, "status"),
-            "available",
-            StringComparison.OrdinalIgnoreCase));
+        var available = sources.Count(record => IsAccessible(Get(record, "status")));
         var limited = sources.Count(record => IsLimited(record));
         var unavailable = sources.Count(record => IsUnavailable(Get(record, "status")));
 
@@ -57,6 +54,10 @@ public sealed record EvidenceCoverageSummary(
         string.Equals(status, "unavailable", StringComparison.OrdinalIgnoreCase)
         || string.Equals(status, "disabled", StringComparison.OrdinalIgnoreCase)
         || string.Equals(status, "notSupported", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsAccessible(string? status) =>
+        string.Equals(status, "available", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(status, "empty", StringComparison.OrdinalIgnoreCase);
 
     private static bool HasNonZeroMetric(string? detail, string key)
     {

@@ -10,7 +10,8 @@ public sealed class EvidenceModuleCatalogTests
         Assert.Equal(17, EvidenceModuleCatalog.All.Count);
         Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "bam" && module.Availability == ModuleAvailability.Available);
         Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "amcache");
-        Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "srum");
+        Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "srum" && module.Availability == ModuleAvailability.Preview);
+        Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "paths" && module.Availability == ModuleAvailability.Preview);
         Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "amcache" && module.Availability == ModuleAvailability.Preview);
         Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "crashed-files" && module.Availability == ModuleAvailability.Preview);
         Assert.Contains(EvidenceModuleCatalog.All, module => module.Id == "powershell" && module.Availability == ModuleAvailability.Preview);

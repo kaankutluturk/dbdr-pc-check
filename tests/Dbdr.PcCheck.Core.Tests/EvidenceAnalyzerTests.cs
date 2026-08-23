@@ -252,4 +252,47 @@ public sealed class EvidenceAnalyzerTests
         Assert.Contains(findings, finding => finding.Disposition == FindingDisposition.CoverageGap
             && finding.Title.Contains("parse", StringComparison.OrdinalIgnoreCase));
     }
+
+    [Fact]
+    public void CorrelatesMinimizedSrumPathWithFlaggedPersistenceBinary()
+    {
+        var now = new DateTimeOffset(2026, 8, 23, 10, 0, 0, TimeSpan.Zero);
+        var path = @"%USERPROFILE%\AppData\Local\shared-loader.exe";
+        var records = new EvidenceRecord[]
+        {
+            new(
+                "execution-history",
+                "execution.srum_application",
+                "unit-test",
+                now,
+                now.AddMinutes(-30),
+                new Dictionary<string, string?>
+                {
+                    ["applicationName"] = "shared-loader.exe",
+                    ["applicationPath"] = path,
+                    ["identityForm"] = "redacted-path",
+                }),
+            new(
+                "persistence",
+                "persistence.binary",
+                "unit-test",
+                now,
+                null,
+                new Dictionary<string, string?>
+                {
+                    ["executablePath"] = path,
+                    ["authenticodeStatus"] = "unsigned",
+                }),
+        };
+        var result = new CollectionRunResult(
+            new CollectionContext("case-1", now.AddHours(-2), now, now, "test"),
+            now,
+            [new ModuleResult("test", true, TimeSpan.Zero, records, [], [])]);
+
+        var findings = EvidenceAnalyzer.Analyze(result);
+
+        Assert.Contains(findings, finding => finding.Module == "correlation"
+            && finding.Title.Contains("source and persistence", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(findings, finding => finding.Detail.Contains("S-1-5-", StringComparison.OrdinalIgnoreCase));
+    }
 }

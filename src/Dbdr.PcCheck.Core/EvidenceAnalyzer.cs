@@ -605,6 +605,46 @@ public static class EvidenceAnalyzer
                 "correlation",
                 "execution.usn_executable_change"));
         }
+
+        var historicalPathEvidence = result.Records
+            .Where(record => record.Kind is "execution.bam" or "execution.amcache" or "execution.srum_application")
+            .Select(record => new
+            {
+                Record = record,
+                Path = NormalizeApprovedPath(Get(record, record.Kind == "execution.srum_application"
+                    ? "applicationPath"
+                    : "executablePath")),
+            })
+            .Where(item => item.Path is not null)
+            .GroupBy(item => item.Path!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.OrdinalIgnoreCase);
+        foreach (var binaryRecord in binaryRecords.Where(record =>
+                     (record.Kind is "process.module" or "persistence.binary")
+                     && HasElevatedBinarySignal(record)))
+        {
+            var path = Get(binaryRecord, binaryRecord.Kind == "process.module" ? "modulePath" : "executablePath");
+            var normalizedPath = NormalizeApprovedPath(path);
+            if (normalizedPath is null || !historicalPathEvidence.TryGetValue(normalizedPath, out var historicalRecords))
+            {
+                continue;
+            }
+
+            var historyKinds = string.Join(
+                ", ",
+                historicalRecords
+                    .Select(item => item.Record.Kind)
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal));
+            var title = binaryRecord.Kind == "process.module"
+                ? "Flagged executable path spans approved source and live game-module evidence"
+                : "Flagged executable path spans approved source and persistence evidence";
+            findings.Add(new FindingCandidate(
+                FindingDisposition.NeedsReview,
+                title,
+                $"{path} appears in {historyKinds} and {binaryRecord.Kind}, where the referenced binary also has a signature, YARA or PE-import review signal. Exact redacted paths can still be reused or redirected; corroborate hash, signer and timestamps.",
+                "correlation",
+                binaryRecord.Kind));
+        }
     }
 
     private static bool HasElevatedBinarySignal(EvidenceRecord record)
@@ -637,6 +677,20 @@ public static class EvidenceAnalyzer
 
         var separator = Math.Max(path.LastIndexOf('\\'), path.LastIndexOf('/'));
         return separator >= 0 && separator + 1 < path.Length ? path[(separator + 1)..] : path;
+    }
+
+    private static string? NormalizeApprovedPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)
+            || path.Length > 2048
+            || path.Any(char.IsControl)
+            || path.Contains("\\Users\\", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var normalized = path.Trim().Trim('"').Replace('/', '\\');
+        return normalized.Contains('\\') ? normalized : null;
     }
 
     private static IEnumerable<uint> ParseProcessIds(string? value)

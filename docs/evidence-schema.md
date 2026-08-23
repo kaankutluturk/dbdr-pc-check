@@ -72,11 +72,15 @@ The schema never stores YARA match bytes, offsets, custom rule contents or a cop
 
 ## Extended forensic metadata
 
-The opt-in extended source group adds three record kinds:
+The opt-in extended source group adds five record kinds:
 
 - `execution.amcache`: current executable application inventory. Fields can include `fileName`, redacted `executablePath`, publisher/product/version data, binary type, size and `linkDate`. `sourceTimestampUtc` is null; `linkDate` is labeled file metadata and is not an execution time. Collection is capped at 5,000 executable records.
 - `event.application_crash`: time-bounded Application Error event 1000 metadata. Fields can include application/fault-module name and version, exception code and redacted application/module paths. Message bodies, report identifiers and dumps are absent.
 - `event.powershell_engine`: time-bounded Windows PowerShell event 400, 403 or 600 metadata. Fields contain event/provider identifiers, level and a normalized lifecycle value. Event payloads, commands, scripts, script blocks, host arguments and user identities are absent.
+- `execution.usn_executable_change`: bounded recent NTFS journal records for execution-capable leaf filenames. Fields contain filename, extension, volume, reason labels and create/delete or rename sequence; parent paths and file references are absent.
+- `execution.srum_application`: time-bounded executable application-usage bucket from Microsoft `powercfg /srumutil`. Fields are restricted to `applicationName`, nullable redacted `applicationPath` and `identityForm`; the bucket timestamp is `sourceTimestampUtc`. User IDs, network fields, resource amounts and opaque application identifiers are absent. Collection is capped at a 64 MiB/60-second native export and 5,000 emitted records.
+
+The analyzer can correlate an exact redacted `applicationPath`/`executablePath` across BAM, Amcache or SRUM usage and `process.module`/`persistence.binary` evidence. It emits a review item only when the binary record also has an independent signature, YARA or PE-import signal. The finding preserves no new raw path source and does not resolve links, aliases or parent directories.
 
 ## v0.5.0 record kinds
 
@@ -89,6 +93,7 @@ The opt-in extended source group adds three record kinds:
 - `execution.prefetch`
 - `execution.amcache`
 - `execution.usn_executable_change`
+- `execution.srum_application`
 - `event.service_install`
 - `event.code_integrity`
 - `event.application_crash`
