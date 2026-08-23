@@ -53,10 +53,31 @@ jobs:
             throw "Portable publish must contain exactly one DBDR.PcCheck.exe file."
           }
 
+      - name: Launch smoke test
+        shell: pwsh
+        run: |
+          $process = Start-Process ".\artifacts\win-x64\DBDR.PcCheck.exe" -ArgumentList "--self-test" -PassThru
+          if (-not $process.WaitForExit(30000)) {
+            $process.Kill()
+            throw "DBDR.PcCheck.exe did not finish its startup self-test within 30 seconds."
+          }
+          if ($process.ExitCode -ne 0) {
+            throw "DBDR.PcCheck.exe startup self-test failed with exit code $($process.ExitCode)."
+          }
+
+      - name: Package transport-safe build
+        shell: pwsh
+        run: |
+          Compress-Archive -Path ".\artifacts\win-x64\DBDR.PcCheck.exe" -DestinationPath ".\artifacts\dbdr-pc-check-win-x64.zip"
+          (Get-FileHash ".\artifacts\dbdr-pc-check-win-x64.zip" -Algorithm SHA256).Hash.ToLowerInvariant() |
+            Set-Content ".\artifacts\dbdr-pc-check-win-x64.zip.sha256"
+
       - name: Upload development build
         uses: actions/upload-artifact@v7
         with:
           name: dbdr-pc-check-win-x64-${{ github.sha }}
-          path: artifacts/win-x64/DBDR.PcCheck.exe
+          path: |
+            artifacts/dbdr-pc-check-win-x64.zip
+            artifacts/dbdr-pc-check-win-x64.zip.sha256
           if-no-files-found: error
           retention-days: 7

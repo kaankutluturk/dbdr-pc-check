@@ -7,7 +7,8 @@ public sealed record YaraScanEvidence(
     string Status,
     IReadOnlyList<string> Matches,
     IReadOnlyDictionary<string, string> RulesetHashes,
-    string? Error)
+    string? Error,
+    string? MaximumFileSizeBytes = null)
 {
     public static YaraScanEvidence Disabled { get; } =
         new("disabled", [], new Dictionary<string, string>(), null);
@@ -23,6 +24,7 @@ public sealed record YaraScanEvidence(
             RulesetHashes.OrderBy(pair => pair.Key, StringComparer.Ordinal)
                 .Select(pair => $"{pair.Key}={pair.Value}"));
         fields["yaraError"] = Error;
+        fields["yaraMaximumFileSizeBytes"] = MaximumFileSizeBytes;
     }
 }
 
@@ -33,6 +35,8 @@ public interface IYaraFileScanner
 
 public sealed class YaraFileScanner : IYaraFileScanner, IDisposable
 {
+    public const long MaximumScannedFileSizeBytes = 512L * 1024 * 1024;
+    public const long MaximumCustomRuleFileSizeBytes = 4L * 1024 * 1024;
     private const string EmbeddedRuleName = "Dbdr.PcCheck.Windows.Assets.Rules.dbdr-baseline.yar";
     private readonly object _scanGate = new();
     private readonly string _temporaryDirectory;
@@ -58,10 +62,18 @@ public sealed class YaraFileScanner : IYaraFileScanner, IDisposable
             if (!string.IsNullOrWhiteSpace(customRulePath))
             {
                 var resolvedCustomPath = Path.GetFullPath(customRulePath);
-                if (!File.Exists(resolvedCustomPath))
+                var customRuleInfo = new FileInfo(resolvedCustomPath);
+                if (!customRuleInfo.Exists)
                 {
                     throw new FileNotFoundException("The custom YARA rule file was not found.", resolvedCustomPath);
                 }
+
+                if (customRuleInfo.Length > MaximumCustomRuleFileSizeBytes)
+                {
+                    throw new InvalidDataException("The custom YARA rule file exceeds the 4 MiB safety limit.");
+                }
+
+                RejectIncludes(resolvedCustomPath);
 
                 ruleSets.Add(Compile("custom", resolvedCustomPath));
             }
@@ -110,6 +122,23 @@ public sealed class YaraFileScanner : IYaraFileScanner, IDisposable
     {
         try
         {
+            var fileInfo = new FileInfo(path);
+            fileInfo.Refresh();
+            if (!fileInfo.Exists)
+            {
+                return Unavailable("FileNotFoundException");
+            }
+
+            if (fileInfo.Length > MaximumScannedFileSizeBytes)
+            {
+                return new YaraScanEvidence(
+                    "skipped-size-limit",
+                    [],
+                    RuleHashes(),
+                    null,
+                    MaximumScannedFileSizeBytes.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+
             var matches = new HashSet<string>(StringComparer.Ordinal);
             lock (_scanGate)
             {
@@ -131,8 +160,9 @@ public sealed class YaraFileScanner : IYaraFileScanner, IDisposable
             return new YaraScanEvidence(
                 matches.Count == 0 ? "no-match" : "matched",
                 matches.Order(StringComparer.Ordinal).ToArray(),
-                _ruleSets.ToDictionary(ruleSet => ruleSet.Id, ruleSet => ruleSet.Sha256, StringComparer.Ordinal),
-                null);
+                RuleHashes(),
+                null,
+                MaximumScannedFileSizeBytes.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -146,13 +176,19 @@ public sealed class YaraFileScanner : IYaraFileScanner, IDisposable
             or DllNotFoundException
             or TypeInitializationException)
         {
-            return new YaraScanEvidence(
-                "unavailable",
-                [],
-                _ruleSets.ToDictionary(ruleSet => ruleSet.Id, ruleSet => ruleSet.Sha256, StringComparer.Ordinal),
-                exception.GetType().Name);
+            return Unavailable(exception.GetType().Name);
         }
     }
+
+    private YaraScanEvidence Unavailable(string error) => new(
+        "unavailable",
+        [],
+        RuleHashes(),
+        error,
+        MaximumScannedFileSizeBytes.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+    private IReadOnlyDictionary<string, string> RuleHashes() =>
+        _ruleSets.ToDictionary(ruleSet => ruleSet.Id, ruleSet => ruleSet.Sha256, StringComparer.Ordinal);
 
     private static CompiledRuleSet Compile(string id, string path)
     {
@@ -177,6 +213,17 @@ public sealed class YaraFileScanner : IYaraFileScanner, IDisposable
             FileAccess.Write,
             FileShare.None);
         source.CopyTo(destination);
+    }
+
+    private static void RejectIncludes(string path)
+    {
+        foreach (var line in File.ReadLines(path))
+        {
+            if (line.TrimStart().StartsWith("include", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("Custom YARA include directives are disabled; provide one self-contained rule file.");
+            }
+        }
     }
 
     private void TryDeleteTemporaryDirectory()

@@ -19,7 +19,8 @@ public sealed record ExecutableFileEvidence(
     string? Error,
     string? EntropyBitsPerByte = null,
     string? EntropyClassification = null,
-    YaraScanEvidence? Yara = null)
+    YaraScanEvidence? Yara = null,
+    PortableExecutableEvidence? PortableExecutable = null)
 {
     public void AddTo(IDictionary<string, string?> fields)
     {
@@ -36,6 +37,7 @@ public sealed record ExecutableFileEvidence(
         fields["entropyBitsPerByte"] = EntropyBitsPerByte;
         fields["entropyClassification"] = EntropyClassification;
         (Yara ?? YaraScanEvidence.Disabled).AddTo(fields);
+        PortableExecutable?.AddTo(fields);
     }
 }
 
@@ -49,10 +51,14 @@ public sealed class ExecutableFileInspector : IExecutableFileInspector
     private readonly Dictionary<string, Task<ExecutableFileEvidence>> _cache = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _cacheGate = new();
     private readonly IYaraFileScanner? _yaraScanner;
+    private readonly IPortableExecutableAnalyzer _portableExecutableAnalyzer;
 
-    public ExecutableFileInspector(IYaraFileScanner? yaraScanner = null)
+    public ExecutableFileInspector(
+        IYaraFileScanner? yaraScanner = null,
+        IPortableExecutableAnalyzer? portableExecutableAnalyzer = null)
     {
         _yaraScanner = yaraScanner;
+        _portableExecutableAnalyzer = portableExecutableAnalyzer ?? new PortableExecutableAnalyzer();
     }
 
     public Task<ExecutableFileEvidence> InspectAsync(string path, CancellationToken cancellationToken)
@@ -64,7 +70,11 @@ public sealed class ExecutableFileInspector : IExecutableFileInspector
                 return cached;
             }
 
-            var inspection = InspectCoreAsync(path, _yaraScanner, cancellationToken);
+            var inspection = InspectCoreAsync(
+                path,
+                _yaraScanner,
+                _portableExecutableAnalyzer,
+                cancellationToken);
             _cache[path] = inspection;
             return inspection;
         }
@@ -73,6 +83,7 @@ public sealed class ExecutableFileInspector : IExecutableFileInspector
     private static async Task<ExecutableFileEvidence> InspectCoreAsync(
         string path,
         IYaraFileScanner? yaraScanner,
+        IPortableExecutableAnalyzer portableExecutableAnalyzer,
         CancellationToken cancellationToken)
     {
         try
@@ -113,6 +124,9 @@ public sealed class ExecutableFileInspector : IExecutableFileInspector
             cancellationToken.ThrowIfCancellationRequested();
             var version = FileVersionInfo.GetVersionInfo(path);
             var authenticodeStatus = AuthenticodeVerifier.GetStatus(path);
+            var portableExecutableEvidence = await portableExecutableAnalyzer
+                .AnalyzeAsync(path, cancellationToken)
+                .ConfigureAwait(false);
             var yaraEvidence = yaraScanner is null
                 ? YaraScanEvidence.Disabled
                 : await yaraScanner.ScanAsync(path, cancellationToken).ConfigureAwait(false);
@@ -137,7 +151,8 @@ public sealed class ExecutableFileInspector : IExecutableFileInspector
                 identityStable ? null : "File identity changed while it was inspected.",
                 entropy.CalculateBitsPerByte().ToString("F4", CultureInfo.InvariantCulture),
                 BinaryEntropy.Classify(entropy.CalculateBitsPerByte()),
-                yaraEvidence);
+                yaraEvidence,
+                portableExecutableEvidence);
         }
         catch (Exception exception) when (exception is IOException
             or UnauthorizedAccessException

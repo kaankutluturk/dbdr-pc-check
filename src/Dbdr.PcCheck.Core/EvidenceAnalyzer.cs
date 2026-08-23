@@ -5,7 +5,7 @@ namespace Dbdr.PcCheck.Core;
 
 public static class EvidenceAnalyzer
 {
-    public const string AnalysisProfileVersion = "0.3.0";
+    public const string AnalysisProfileVersion = "0.5.0";
 
     public static IReadOnlyList<EvidenceFinding> Analyze(CollectionRunResult result)
     {
@@ -74,7 +74,7 @@ public static class EvidenceAnalyzer
 
     private static void AnalyzeBinaryTriage(EvidenceRecord record, ICollection<FindingCandidate> findings)
     {
-        if (record.Kind is not ("process.module" or "file.metadata"))
+        if (record.Kind is not ("process.module" or "file.metadata" or "persistence.binary"))
         {
             return;
         }
@@ -106,12 +106,67 @@ public static class EvidenceAnalyzer
             "high",
             StringComparison.OrdinalIgnoreCase);
         var signature = Get(record, "authenticodeStatus");
+        if (string.Equals(signature, "unsigned", StringComparison.OrdinalIgnoreCase))
+        {
+            findings.Add(new FindingCandidate(
+                FindingDisposition.Informational,
+                "Unsigned referenced executable",
+                $"{path} has no Authenticode signature. Unsigned software is common; use this observation to filter and correlate, not as a verdict.",
+                record.Module,
+                record.Kind));
+        }
+
         if (isHighEntropy && !string.Equals(signature, "valid", StringComparison.OrdinalIgnoreCase))
         {
             findings.Add(new FindingCandidate(
                 FindingDisposition.NeedsReview,
                 "High-entropy file without a valid signature",
                 $"{path} measured {Get(record, "entropyBitsPerByte") ?? "unknown"} bits/byte and its signature status was {signature ?? "unknown"}. Packed or compressed legitimate software is a common alternative explanation.",
+                record.Module,
+                record.Kind));
+        }
+
+        if (string.Equals(Get(record, "peStatus"), "malformed", StringComparison.OrdinalIgnoreCase))
+        {
+            findings.Add(new FindingCandidate(
+                FindingDisposition.CoverageGap,
+                "PE structure inspection incomplete",
+                $"{path}: {Get(record, "peInspectionError") ?? "The bounded PE parser could not safely interpret the file."}",
+                record.Module,
+                record.Kind));
+        }
+
+        var userWritable = IsUserWritablePath(path);
+        var isValidSignature = string.Equals(signature, "valid", StringComparison.OrdinalIgnoreCase);
+        if (TryGetPositiveInteger(record, "peWritableExecutableSectionCount", out var writableExecutableCount)
+            && (userWritable || !isValidSignature))
+        {
+            findings.Add(new FindingCandidate(
+                FindingDisposition.NeedsReview,
+                "Writable and executable PE section",
+                $"{path} contains {writableExecutableCount.ToString(CultureInfo.InvariantCulture)} writable+executable section(s) and is {(userWritable ? "referenced from a user-writable path" : $"signature={signature ?? "unknown"}")}. Packers and protectors are common alternatives; corroborate imports, signer, hash and execution evidence.",
+                record.Module,
+                record.Kind));
+        }
+
+        var riskClusters = Get(record, "peImportRiskClusters");
+        if (!string.IsNullOrWhiteSpace(riskClusters) && (userWritable || !isValidSignature))
+        {
+            findings.Add(new FindingCandidate(
+                FindingDisposition.NeedsReview,
+                "Loader-capable PE import cluster",
+                $"{path} exposes the bounded import cluster(s) {riskClusters} and is {(userWritable ? "referenced from a user-writable path" : $"signature={signature ?? "unknown"}")}. These APIs are also used by legitimate administration, overlay and security software.",
+                record.Module,
+                record.Kind));
+        }
+
+        var suspiciousSections = Get(record, "peSuspiciousSectionNames");
+        if (!string.IsNullOrWhiteSpace(suspiciousSections) && isHighEntropy && !isValidSignature)
+        {
+            findings.Add(new FindingCandidate(
+                FindingDisposition.NeedsReview,
+                "Packed-section indicators on an unsigned PE",
+                $"{path} contains section name(s) {suspiciousSections}, high whole-file entropy and signature={signature ?? "unknown"}. This is a multi-signal review lead, not proof of malicious behavior.",
                 record.Module,
                 record.Kind));
         }
@@ -131,9 +186,15 @@ public static class EvidenceAnalyzer
         }
 
         var source = Get(record, "sourceName") ?? record.Source;
+        var availability = status switch
+        {
+            "disabled" => "disabled by operator",
+            "notSupported" => "not supported on this system",
+            _ => "unavailable",
+        };
         findings.Add(new FindingCandidate(
             FindingDisposition.CoverageGap,
-            $"{source} unavailable",
+            $"{source} {availability}",
             Get(record, "detail") ?? "The source did not provide evidence for this collection.",
             record.Module,
             record.Kind));
@@ -141,7 +202,7 @@ public static class EvidenceAnalyzer
 
     private static void AnalyzeFileInspection(EvidenceRecord record, ICollection<FindingCandidate> findings)
     {
-        if (record.Kind is not ("process.module" or "file.metadata"))
+        if (record.Kind is not ("process.module" or "file.metadata" or "persistence.binary"))
         {
             return;
         }
@@ -231,6 +292,9 @@ public static class EvidenceAnalyzer
 
     private static string? Get(EvidenceRecord record, string key) =>
         record.Fields.TryGetValue(key, out var value) ? value : null;
+
+    private static bool TryGetPositiveInteger(EvidenceRecord record, string key, out int value) =>
+        int.TryParse(Get(record, key), NumberStyles.None, CultureInfo.InvariantCulture, out value) && value > 0;
 
     private sealed record FindingCandidate(
         FindingDisposition Disposition,
