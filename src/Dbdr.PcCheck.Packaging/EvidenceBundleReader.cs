@@ -18,7 +18,7 @@ public sealed record EvidenceBundleReadResult(
     CollectionRunResult Result,
     EvidenceBundleVerification Verification);
 
-public sealed class EvidenceBundlePassphraseRequiredException : InvalidDataException
+public sealed class EvidenceBundlePassphraseRequiredException : IOException
 {
     public EvidenceBundlePassphraseRequiredException()
         : base("The evidence bundle is encrypted and requires its case passphrase.")
