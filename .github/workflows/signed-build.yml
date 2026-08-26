@@ -100,12 +100,17 @@ jobs:
             throw "The packaged application does not embed requireAdministrator."
           }
           $process = Start-Process $files[0].FullName -ArgumentList "--self-test" -PassThru
-          if (-not $process.WaitForExit(30000)) {
+          if (-not $process.WaitForExit(90000)) {
             $process.Kill()
-            throw "The packaged application did not complete its startup self-test."
+            throw "The packaged application did not complete its end-to-end self-test."
           }
           if ($process.ExitCode -ne 0) {
-            throw "The packaged application startup self-test failed with exit code $($process.ExitCode)."
+            $diagnostic = Join-Path $env:TEMP "DBDR-PC-Check\diagnostics\startup-error.log"
+            if (Test-Path $diagnostic) {
+              Write-Host "Packaged self-test diagnostic:"
+              Get-Content $diagnostic
+            }
+            throw "The packaged application end-to-end self-test failed with exit code $($process.ExitCode)."
           }
 
       - name: Sign in to Azure with OIDC
@@ -136,12 +141,17 @@ jobs:
             throw "Authenticode verification failed with status $($signature.Status)."
           }
           $process = Start-Process $exe -ArgumentList "--self-test" -PassThru
-          if (-not $process.WaitForExit(30000)) {
+          if (-not $process.WaitForExit(90000)) {
             $process.Kill()
-            throw "The signed application did not complete its startup self-test."
+            throw "The signed application did not complete its end-to-end self-test."
           }
           if ($process.ExitCode -ne 0) {
-            throw "The signed application startup self-test failed with exit code $($process.ExitCode)."
+            $diagnostic = Join-Path $env:TEMP "DBDR-PC-Check\diagnostics\startup-error.log"
+            if (Test-Path $diagnostic) {
+              Write-Host "Signed self-test diagnostic:"
+              Get-Content $diagnostic
+            }
+            throw "The signed application end-to-end self-test failed with exit code $($process.ExitCode)."
           }
           Compress-Archive -Path $exe -DestinationPath ".\artifacts\dbdr-pc-check-v0.5.0-signed-win-x64.zip"
           (Get-FileHash ".\artifacts\dbdr-pc-check-v0.5.0-signed-win-x64.zip" -Algorithm SHA256).Hash.ToLowerInvariant() |

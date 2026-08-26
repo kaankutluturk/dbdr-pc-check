@@ -109,16 +109,21 @@ jobs:
             throw "The packaged application does not embed requireAdministrator."
           }
 
-      - name: Launch smoke test
+      - name: Packaged end-to-end self-test
         shell: pwsh
         run: |
           $process = Start-Process ".\artifacts\win-x64\DBDR.PcCheck.exe" -ArgumentList "--self-test" -PassThru
-          if (-not $process.WaitForExit(30000)) {
+          if (-not $process.WaitForExit(90000)) {
             $process.Kill()
-            throw "DBDR.PcCheck.exe did not finish its startup self-test within 30 seconds."
+            throw "DBDR.PcCheck.exe did not finish its packaged end-to-end self-test within 90 seconds."
           }
           if ($process.ExitCode -ne 0) {
-            throw "DBDR.PcCheck.exe startup self-test failed with exit code $($process.ExitCode)."
+            $diagnostic = Join-Path $env:TEMP "DBDR-PC-Check\diagnostics\startup-error.log"
+            if (Test-Path $diagnostic) {
+              Write-Host "Packaged self-test diagnostic:"
+              Get-Content $diagnostic
+            }
+            throw "DBDR.PcCheck.exe packaged end-to-end self-test failed with exit code $($process.ExitCode)."
           }
 
       - name: Package transport-safe build

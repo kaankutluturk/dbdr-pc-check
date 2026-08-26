@@ -2,7 +2,7 @@
 
 A consent-based, read-only Windows evidence suite for consistent and reviewable DBDR PC checks.
 
-> **Development status:** v0.5.0 hardens executable and driver triage with a bounded hostile-input PE parser, section entropy, writable+executable-section detection, import-risk clusters, expanded embedded YARA review rules, signed/versioned offline YARA-pack verification, persistence-binary inspection, Windows code-integrity/security-posture context, authenticated encrypted case bundles, deterministic detection-profile validation and an actual packaged-app launch smoke test. It is not a cheat detector and must not be used as the sole basis for a moderation decision.
+> **Development status:** v0.5.0 hardens executable and driver triage with a bounded hostile-input PE parser, section entropy, writable+executable-section detection, import-risk clusters, expanded embedded YARA review rules, signed/versioned offline YARA-pack verification, persistence-binary inspection, Windows code-integrity/security-posture context, authenticated encrypted case bundles, deterministic detection-profile validation and a packaged end-to-end synthetic self-test. It is not a cheat detector and must not be used as the sole basis for a moderation decision.
 
 ## Product shape
 
@@ -36,7 +36,7 @@ Each collector is read-only, independently cancellable and failure-isolated. A f
 
 The suite does **not** upload evidence. It does not inspect browser history or downloads, chats, credentials, clipboard contents, screenshots, personal documents, PowerShell commands/scripts/history, crash dumps, raw process or kernel memory, or memory-derived strings. It does not terminate processes, modify services, install drivers, attach a debugger or clear logs.
 
-See [PRIVACY.md](PRIVACY.md), [the module roadmap](docs/module-roadmap.md), [evidence schema](docs/evidence-schema.md), [source matrix](docs/source-matrix.md), [architecture](docs/architecture.md), [detection validation](docs/detection-validation.md), [signed YARA rule packs](docs/yara-rule-packs.md), [release signing](docs/signing.md) and [threat model](docs/threat-model.md).
+See [PRIVACY.md](PRIVACY.md), [the module roadmap](docs/module-roadmap.md), [evidence schema](docs/evidence-schema.md), [source matrix](docs/source-matrix.md), [architecture](docs/architecture.md), [detection validation](docs/detection-validation.md), [release readiness](docs/release-readiness.md), [signed YARA rule packs](docs/yara-rule-packs.md), [release signing](docs/signing.md) and [threat model](docs/threat-model.md).
 
 ## Build
 
@@ -46,6 +46,8 @@ Runtime requirements:
 - Administrator approval through the Windows UAC prompt on every launch
 
 The packaged application is self-contained and does not require a separate .NET installation. It embeds `requireAdministrator`; declining the UAC prompt exits before the UI or any collection starts. Elevation improves source coverage but does not replace the in-app case scope and explicit authorization checkbox.
+
+CI launches the published single-file EXE with its internal `--self-test` switch. The test constructs the WPF shell, starts the same-executable isolated YARA worker against harmless synthetic bytes, runs the neutral analyzer, writes an authenticated encrypted `.dbdr` bundle and reopens it through archive-cap and SHA-256 manifest verification. It does not query live Windows evidence sources or a network service. This is a packaging gate, not a replacement for the clean Windows 10/11 acceptance matrix in [release readiness](docs/release-readiness.md).
 
 Build requirement: .NET 10 SDK.
 

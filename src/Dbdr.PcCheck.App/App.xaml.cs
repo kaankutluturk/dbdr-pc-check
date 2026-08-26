@@ -33,9 +33,10 @@ public partial class App : Application
 
             if (_selfTestMode)
             {
-                _ = YaraRulePackVerifier.LoadEmbeddedTrustKeys();
                 var window = new MainWindow();
                 window.Close();
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(75));
+                PackagedApplicationSelfTest.RunAsync(timeout.Token).GetAwaiter().GetResult();
                 Shutdown(0);
                 return;
             }
