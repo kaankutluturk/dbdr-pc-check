@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text;
 using Dbdr.PcCheck.Core;
 using Dbdr.PcCheck.Core.Models;
