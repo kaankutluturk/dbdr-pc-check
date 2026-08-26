@@ -12,7 +12,7 @@ The desktop application provides one guided workflow instead of a folder of unre
 2. select the proportionate evidence sources for the case;
 3. preserve volatile DBD and process state first;
 4. collect slower historical and configuration evidence independently;
-5. generate neutral review items and explicit coverage gaps; and
+5. generate neutral review items and explicit coverage gaps;
 6. export an authenticated encrypted local evidence bundle and offline report; and
 7. reopen a `.dbdr` or legacy ZIP bundle only after bounded archive and manifest verification.
 
